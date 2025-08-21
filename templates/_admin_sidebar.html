@@ -1,0 +1,69 @@
+<aside class="w-64 bg-white border-r flex flex-col min-h-screen px-6 py-8 shadow-md">
+    <!-- Ensure Alpine.js is loaded for dropdowns -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <div class="flex items-center mb-10">
+        <img src="/static/img/logo24.png" class="w-9 h-9 mr-3" alt="BAANTANG Logo">
+        <span class="text-xl font-bold text-gray-800 tracking-wide">BAANTANG</span>
+    </div>
+    <nav class="flex-1 space-y-3">
+        <!-- Overview with Submenu -->
+        <div x-data="{ open: {{ 'true' if request.endpoint in ['admin_dashboard', 'admin_reports'] else 'false' }} }">
+            <div class="flex items-center">
+                <a href="{{ url_for('admin_dashboard') }}"
+                   class="flex-1 flex items-center px-4 py-2 rounded-lg sidebar-link transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg w-full text-left {% if request.endpoint == 'admin_dashboard' %}sidebar-link-active{% endif %}">
+                    <img src="/static/img/icons/dashboard.png" alt="Dashboard Icon" class="w-6 h-6 mr-3">
+                    ภาพรวมข้อมูล
+                </a>
+                <button type="button" @click="open = !open" class="ml-2 focus:outline-none">
+                    <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+            <div x-show="open" class="ml-8 mt-1 space-y-1" x-transition>
+                <a href="{{ url_for('admin_reports') }}"
+   id="sidebar-reports-link"
+   class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100 {% if request.endpoint == 'admin_reports' %}font-bold text-blue-700 bg-blue-100{% endif %}">
+   <img src="/static/img/icons/reports.png" alt="Dashboard Icon" class="w-6 h-6 mr-3">
+   รายงาน
+</a>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('admin_houses') }}" class="flex items-center px-4 py-2 rounded-lg sidebar-link {% if request.endpoint == 'admin_houses' %}sidebar-link-active{% endif %} transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg">
+            <img src="/static/img/icons/houses.png" alt="Houses Icon" class="w-6 h-6 mr-3">
+            บ้านจัดสรร
+        </a>
+        
+        <a href="{{ url_for('admin_projects') }}" class="flex items-center px-4 py-2 rounded-lg sidebar-link {% if request.endpoint == 'admin_projects' %}sidebar-link-active{% endif %} transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg">
+            <img src="/static/img/icons/projects.png" alt="Projects Icon" class="w-6 h-6 mr-3">
+            จังหวัดในโครงการ
+        </a>
+        
+        <a href="{{ url_for('admin_house_types') }}" class="flex items-center px-4 py-2 rounded-lg sidebar-link {% if request.endpoint == 'admin_house_types' %}sidebar-link-active{% endif %} transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg">
+            <img src="/static/img/icons/house_types.png" alt="House Types Icon" class="w-6 h-6 mr-3">
+            ประเภทบ้าน
+        </a>
+        
+        <a href="{{ url_for('admin_house_features') }}" class="flex items-center px-4 py-2 rounded-lg sidebar-link {% if request.endpoint == 'admin_house_features' %}sidebar-link-active{% endif %} transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg">
+            <img src="/static/img/icons/house_features.png" alt="House Features Icon" class="w-6 h-6 mr-3">
+            ลักษณะบ้าน
+        </a>
+        
+        <a href="{{ url_for('admin_users') }}" class="flex items-center px-4 py-2 rounded-lg sidebar-link {% if request.endpoint == 'admin_users' %}sidebar-link-active{% endif %} transition duration-150 ease-in-out hover:bg-gray-100 hover:shadow-lg">
+            <img src="/static/img/icons/users.png" alt="Users Icon" class="w-6 h-6 mr-3">
+            ผู้ดูแลระบบ
+        </a>
+        
+        <a href="{{ url_for('logout') }}" class="flex items-center px-4 py-2 rounded-lg text-red-600 hover:bg-red-100 hover:text-red-600 transition duration-150 ease-in-out hover:shadow-lg">
+            <img src="/static/img/icons/logout.png" alt="Logout Icon" class="w-6 h-6 mr-3">
+            ออกจากระบบ
+        </a>
+    </nav>
+    <div class="mt-auto pt-8">
+        <div class="bg-blue-100 rounded-lg p-2 flex items-center border border-white-200">
+            <img src="/static/img/icons/admin.png" class="w-8 h-8 rounded-full mr-3" alt="User Icon">
+            <span class="text-m font-bold text-white-700">{{ session.get('admin_username', 'Admin User') }}</span>
+        </div>
+    </div>
+</aside> 
