@@ -171,7 +171,7 @@
 
             <!-- Stats Cards -->
             <!-- Stats Cards Row (compact) -->
-<div class="col-span-12 grid grid-cols-3 gap-4 mb-2">
+<div class="col-span-12 grid grid-cols-4 gap-4 mb-2">
                 <div class="modern-card flex items-center justify-between" title="Total number of houses in the system">
                     <div>
                         <div class="text-sm font-medium text-gray-500">จำนวนบ้านทั้งหมด</div>
@@ -179,6 +179,18 @@
                     </div>
                     <div class="stats-icon bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l7 7m-2 2v5a1 1 0 01-1 1H9m2-2v-5a1 1 0 011-1h2m2-2a2 2 0 100-4 2 2 0 000 4z"></path></svg>
+                    </div>
+                </div>
+                <div class="modern-card flex items-center justify-between" title="Today's views">
+                    <div>
+                        <div class="text-sm font-medium text-gray-500">จำนวนการเข้าชมในวันนี้</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-1">{{ todays_views or 0 }}</div>
+                    </div>
+                    <div class="stats-icon bg-gradient-to-br from-purple-100 to-purple-50 text-purple-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
                     </div>
                 </div>
                 <div class="modern-card flex items-center justify-between" title="Total number of projects">

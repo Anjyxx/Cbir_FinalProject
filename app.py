@@ -15,7 +15,7 @@ if sys.stdout.encoding != 'utf-8':
 if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')  # Prevents encoding errors in Windows console output
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_file, send_from_directory, abort, Response
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from flask_wtf.csrf import CSRFProtect
@@ -55,7 +55,11 @@ class CustomJSONEncoder(json.JSONEncoder):
 app = Flask(__name__)
 app.debug = True  # Add this line
 app.config['DEBUG'] = True  # And this line
-app.json_encoder =  CustomJSONEncoder
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Replace with a secure secret key in production
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Session expires after 1 day
+app.json_encoder = CustomJSONEncoder
 
 # Configure pdfkit
 def setup_thai_font():
@@ -808,11 +812,16 @@ def admin_dashboard():
         house_additions_data = dict_fetchall(cur)
         house_additions_data = serialize_data_for_json(house_additions_data)
 
+        # Fetch today's view count
+        cur.execute("SELECT COUNT(*) FROM house_views WHERE DATE(created_at) = CURDATE()")
+        todays_views = cur.fetchone()[0]
+
         return render_template(
             'admin_dashboard.html',
             total_houses=total_houses,
             total_projects=total_projects,
             total_types=total_types,
+            todays_views=todays_views,
             latest_houses=latest_houses,
             recently_edited_houses=recently_edited_houses,
             house_types=house_types,
@@ -1437,9 +1446,10 @@ def admin_houses():
                    END as description,
                    h.price, h.bedrooms, h.bathrooms, 
                    h.living_area as area, h.parking_space as parking,
-                   h.f_id,  -- <--- ADD THIS LINE
+                   h.f_id, COALESCE(h.view_count, 0) as view_count,
                    t.t_name as type_name, p.p_name as project_name,
-                   h.status  -- <--- ADD THIS LINE
+                   h.status,
+                   (SELECT image_url FROM house_images WHERE h_id = h.h_id AND is_main = 1 LIMIT 1) as main_image_url
             FROM house h
             LEFT JOIN house_type t ON h.t_id = t.t_id
             LEFT JOIN project p ON h.p_id = p.p_id
@@ -1450,20 +1460,23 @@ def admin_houses():
         where_clauses = []
         if search:
             where_clauses.append("(h.h_title LIKE %s OR h.h_description LIKE %s)")
-            search_param = f"%{search}%"
-            params.extend([search_param, search_param])
+            params.extend([f"%{search}%", f"%{search}%"])
+        
         if type_filter:
             where_clauses.append("h.t_id = %s")
             params.append(type_filter)
+            
         if project_filter:
             where_clauses.append("h.p_id = %s")
             params.append(project_filter)
-
+            
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
-
-        # Add ORDER BY clause
-        if sort_order == 'name_desc':
+            
+        # Add ORDER BY based on sort_order
+        if sort_order == 'name_asc':
+            query += " ORDER BY h.h_title ASC"
+        elif sort_order == 'name_desc':
             query += " ORDER BY h.h_title DESC"
         elif sort_order == 'type_asc':
             query += " ORDER BY t.t_name ASC, h.h_title ASC"
@@ -1473,8 +1486,12 @@ def admin_houses():
             query += " ORDER BY p.p_name ASC, h.h_title ASC"
         elif sort_order == 'project_desc':
             query += " ORDER BY p.p_name DESC, h.h_title ASC"
-        else:  # name_asc
-            query += " ORDER BY h.h_title ASC"
+        elif sort_order == 'views_asc':
+            query += " ORDER BY view_count ASC, h.h_title ASC"
+        elif sort_order == 'views_desc':
+            query += " ORDER BY view_count DESC, h.h_title ASC"
+        else:  # Default sort by view count descending
+            query += " ORDER BY view_count DESC, h.h_title ASC"
 
         cur.execute(query, params)
         houses = dict_fetchall(cur)
@@ -2495,7 +2512,7 @@ def admin_edit_house_feature(id):
             
         if not f_name:
             flash('Feature name is required.', 'error')
-            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image, created_at FROM house_features WHERE f_id = %s", (id,))
+            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename, created_at FROM house_features WHERE f_id = %s", (id,))
             feature_data = dict_fetchone(cur)
             cur.close()
             return render_template('admin_edit_house_feature.html', feature=feature_data)
@@ -2525,8 +2542,8 @@ def admin_edit_house_feature(id):
             return redirect(url_for('admin_house_features'))
         except Exception as e:
             mysql.connection.rollback()
-            flash(f'Error updating house feature: {str(e)}', 'error')
-            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image FROM house_features WHERE f_id = %s", (id,))
+            flash('Error updating house feature: {}'.format(str(e)), 'error')
+            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename FROM house_features WHERE f_id = %s", (id,))
             feature_data = dict_fetchone(cur)
             cur.close()
             return render_template('admin_edit_house_feature.html', feature=feature_data)
@@ -2550,7 +2567,7 @@ def admin_edit_house_feature(id):
         return redirect(url_for('admin_house_features'))
     
     # Process the image path
-    if not feature_data['image_filename']:
+    if not feature_data.get('image_filename'):
         feature_data['image'] = 'img/house_placeholder.jpg'
     else:
         # Clean up the path
@@ -2681,16 +2698,55 @@ def index():
     finally:
         cur.close()
 
+def track_house_view(house_id, request):
+    """Helper function to track house views with additional metadata"""
+    cur = mysql.connection.cursor()
+    
+    # Get client IP address
+    if request.headers.getlist("X-Forwarded-For"):
+        ip = request.headers.getlist("X-Forwarded-For")[0]
+    else:
+        ip = request.remote_addr
+    
+    # Log the view
+    cur.execute("""
+        INSERT INTO house_views (house_id, ip_address, user_agent)
+        VALUES (%s, %s, %s)
+    """, (house_id, ip, request.user_agent.string))
+    
+    # Update the view count in the house table
+    cur.execute("""
+        UPDATE house 
+        SET view_count = COALESCE(view_count, 0) + 1 
+        WHERE h_id = %s
+    """, (house_id,))
+    
+    mysql.connection.commit()
+    cur.close()
+
 @app.route('/house/<int:house_id>')
 def house_detail(house_id):
     cur = mysql.connection.cursor()
+    
+    # First check if house exists
+    cur.execute("SELECT h_id FROM house WHERE h_id = %s", (house_id,))
+    if not cur.fetchone():
+        cur.close()
+        flash('บ้านไม่พบ', 'error')
+        return redirect(url_for('index'))
+    
+    # Track the view
+    track_house_view(house_id, request)
+    
+    # Get house details with view count
     cur.execute("""
         SELECT 
             h.h_title AS title, 
             h.h_description AS house_description,
             h.bedrooms, 
             h.bathrooms, 
-            h.living_area, 
+            h.living_area,
+            h.view_count,
             p.address AS project_address,
             p.description AS project_description,
             h.*, 
@@ -4065,6 +4121,34 @@ def get_chart_data():
     total_projects = len(set(h['p_id'] for h in houses if h.get('p_id')))
     total_types = len(set(h['t_id'] for h in houses if h.get('t_id')))
     
+    # Get view count statistics
+    total_views = 0
+    most_viewed_houses = []
+    views_by_type = {}
+    views_trend = []
+    
+    # Assuming you have a 'views' table in your database with the following structure:
+    # id, house_id, view_count, created_at
+    views_query = "SELECT * FROM views WHERE 1=1"
+    views_params = []
+    if selected_type:
+        views_query += " AND t_id = %s"
+        views_params.append(selected_type)
+    if selected_project:
+        views_query += " AND p_id = %s"
+        views_params.append(selected_project)
+    cur.execute(views_query, views_params)
+    views = dict_fetchall(cur)
+    
+    for view in views:
+        total_views += view['view_count']
+        if view['house_id'] not in most_viewed_houses:
+            most_viewed_houses.append(view['house_id'])
+        if view['t_id'] not in views_by_type:
+            views_by_type[view['t_id']] = 0
+        views_by_type[view['t_id']] += view['view_count']
+        views_trend.append({'date': view['created_at'], 'views': view['view_count']})
+    
     return jsonify({
         'success': True,
         'stats': {
@@ -4079,6 +4163,12 @@ def get_chart_data():
             'houses_by_bedrooms': houses_by_bedrooms_data,
             'houses_by_bathrooms': houses_by_bathrooms_data,
             'houses_by_living_area': houses_by_living_area_data
+        },
+        'view_stats': {
+            'total_views': total_views,
+            'most_viewed_houses': most_viewed_houses,
+            'views_by_type': views_by_type,
+            'views_trend': views_trend
         }
     })
 
@@ -4240,12 +4330,23 @@ def generate_pdf_report():
         # Get database connection
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
+        # Get today's view count
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cur.execute("""
+            SELECT COUNT(*) as today_views 
+            FROM house_views 
+            WHERE DATE(created_at) = CURDATE()
+        """)
+        result = cur.fetchone()
+        today_views = result['today_views'] if result else 0
+        
         # Get house data with filters
         query = f"""
             SELECT 
                 h.h_id, h.h_title, h.h_description, h.price, h.bedrooms, h.bathrooms, h.living_area as area,
                 p.p_name as project_name,
-                ht.t_name as type_name
+                ht.t_name as type_name,
+                (SELECT COUNT(*) FROM house_views hv WHERE hv.house_id = h.h_id) as view_count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
             LEFT JOIN house_type ht ON h.t_id = ht.t_id
@@ -4285,182 +4386,296 @@ def generate_pdf_report():
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
             from reportlab.lib.units import mm, inch
-            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
             from reportlab.pdfbase import pdfmetrics
             from reportlab.pdfbase.ttfonts import TTFont
             from reportlab.pdfbase import cidfonts
             from datetime import datetime
             import os
             
-            # Register Thai fonts
             try:
-                # Register NotoSansThai-Bold for headers and emphasis
-                bold_font_path = os.path.join('static', 'fonts', 'NotoSansThai-Bold.ttf')
-                if os.path.exists(bold_font_path):
-                    pdfmetrics.registerFont(TTFont('NotoSansThai-Bold', bold_font_path))
-                    thai_bold_font = 'NotoSansThai-Bold'
+                # Register Thai font with proper encoding
+                font_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'fonts')
+                regular_font_path = os.path.join(font_folder, 'NotoSansThai-Regular.ttf')
+                bold_font_path = os.path.join(font_folder, 'NotoSansThai-Bold.ttf')
                 
-                # Also register the regular font if available
-                regular_font_path = os.path.join('static', 'fonts', 'NotoSansThai-Regular.ttf')
-                if os.path.exists(regular_font_path):
-                    pdfmetrics.registerFont(TTFont('NotoSansThai-Regular', regular_font_path))
-                    thai_regular_font = 'NotoSansThai-Regular'
+                # Register the fonts with reportlab
+                pdfmetrics.registerFont(TTFont('NotoSansThai', regular_font_path))
+                pdfmetrics.registerFont(TTFont('NotoSansThai-Bold', bold_font_path))
                 
-                # Set default fonts
-                thai_font_name = thai_regular_font if 'thai_regular_font' in locals() else 'Helvetica'
-                thai_bold_font = thai_bold_font if 'thai_bold_font' in locals() else 'Helvetica-Bold'
+                # Get default styles and create custom ones
+                styles = getSampleStyleSheet()
+                
+                # Create custom style for Thai text
+                thai_style = ParagraphStyle(
+                    'ThaiStyle',
+                    parent=styles['Normal'],
+                    fontName='NotoSansThai',
+                    fontSize=10,
+                    leading=12,
+                    wordWrap='CJK',
+                    alignment=TA_JUSTIFY
+                )
+                
+                # Create custom style for Thai headings (smaller and less bold)
+                thai_heading_style = ParagraphStyle(
+                    'ThaiHeadingStyle',
+                    fontName='NotoSansThai',  # Using regular weight instead of bold
+                    fontSize=12,              # Reduced from 16
+                    leading=14,               # Reduced from 20
+                    spaceAfter=8,             # Reduced from 12
+                    alignment=TA_CENTER,
+                    textColor=colors.HexColor('#333333')  # Dark gray instead of black
+                )
+                
+                # Create custom style for table cells (lighter and more compact)
+                thai_table_style = TableStyle([
+                    # All cells
+                    ('FONTNAME', (0, 0), (-1, -1), 'NotoSansThai'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),  # Smaller font size
+                    ('LEADING', (0, 0), (-1, -1), 9),   # Tighter line spacing
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    
+                    # Header row
+                    ('FONTNAME', (0, 0), (-1, 0), 'NotoSansThai'),  # Not bold
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),  # Slightly larger for headers
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#333333')),  # Dark gray
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),  # Lighter gray
+                    
+                    # Grid and borders
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e9ecef')),  # Lighter grid
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6')),  # Lighter border
+                    
+                    # Cell padding and styling
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),  # Less vertical padding
+                    ('TOPPADDING', (0, 0), (-1, -1), 3),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+                ])
                 
             except Exception as e:
-                print(f"Error loading Thai fonts: {e}")
-                thai_font_name = 'Helvetica'
-                thai_bold_font = 'Helvetica-Bold'
+                print(f"Error setting up PDF styles: {e}")
+                # Fallback to default styles if there's an error
+                thai_style = styles['Normal']
+                thai_heading_style = styles['Heading1']
+                thai_table_style = TableStyle([
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey)
+                ])
             
             print("Starting PDF generation...")
             
             # Create a buffer to receive PDF data
             buffer = io.BytesIO()
             
-            # Set up the document with landscape orientation and margins
-            doc = SimpleDocTemplate(
-                buffer,
-                pagesize=landscape(A4),
-                rightMargin=20,
-                leftMargin=20,
-                topMargin=40,
-                bottomMargin=30
+            # Create PDF with landscape orientation and proper margins
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
+                                 rightMargin=20, leftMargin=20, 
+                                 topMargin=40, bottomMargin=20)
+            elements = []
+            
+            
+            
+            # Add today's views
+            views_text = f"<b>จำนวนการเข้าชมในวันนี้:</b> {today_views} ครั้ง"
+            views_para = Paragraph(views_text, thai_style)
+            elements.append(views_para)
+            elements.append(Spacer(1, 10))
+            
+            # Add main title with Thai font
+            main_title_style = ParagraphStyle(
+                'MainTitleStyle',
+                parent=styles['Title'],
+                fontName='NotoSansThai-Bold',
+                fontSize=24,
+                leading=28,
+                alignment=TA_CENTER,
+                spaceAfter=10,
+                textColor=colors.HexColor('#1E40AF')  # Dark blue color
             )
             
-            elements = []
-            styles = getSampleStyleSheet()
-            
-            # Title style
-            title_style = ParagraphStyle(
-                'Title',
-                parent=styles['Heading1'],
-                fontSize=18,
+            # Add subtitle with date
+            subtitle_style = ParagraphStyle(
+                'SubtitleStyle',
+                parent=styles['Normal'],
+                fontName='NotoSansThai',
+                fontSize=14,
+                leading=16,
                 alignment=TA_CENTER,
                 spaceAfter=20,
-                textColor=colors.HexColor('#1E40AF')  # Dark blue
+                textColor=colors.HexColor('#4B5563')  # Gray color
             )
             
-            # Add title with Thai font
-            title_style.fontName = thai_bold_font
-            elements.append(Paragraph("BAANTANG DEVELOPMENT REPORT", title_style))
+            # Add main title and subtitle
+            elements.append(Paragraph('BAANTANG DEVELOPMENT REPORT', main_title_style))
+            elements.append(Paragraph(f'Generated on: {datetime.now().strftime("%d %B %Y, %H:%M")}', subtitle_style))
+            elements.append(Spacer(1, 20))
             
-            # Add date and time
+            # Add report title with Thai font
+            title_style = ParagraphStyle(
+                'TitleStyle',
+                parent=styles['Title'],
+                fontName='NotoSansThai-Bold',
+                fontSize=18,
+                leading=22,
+                alignment=TA_CENTER,
+                spaceAfter=20
+            )
+            
+            # Date style for the report generation timestamp
             date_style = ParagraphStyle(
-                'Date',
-                parent=styles['Normal'],
+                'DateStyle',
+                fontName='NotoSansThai',
                 fontSize=10,
                 alignment=TA_RIGHT,
-                spaceAfter=20,
-                fontName='Helvetica'
+                textColor=colors.HexColor('#666666')
             )
-            # Use a simpler date format with Thai text
-            thai_date = datetime.now().strftime('%d/%m/%Y %H:%M')
-            elements.append(Paragraph(f"Report generated: {thai_date}", date_style))
             
-            # Prepare table data with English headers and ensure all data is in English
+            
+            
+            # Prepare table data with Thai headers and proper text wrapping
             table_data = [
-                ['ID', 'House Name', 'Project', 'Type', 'Beds', 'Baths', 'Area (sq.m.)', 'Price (THB)']
+                [
+                    Paragraph('ID', thai_heading_style),
+                    Paragraph('ชื่อบ้าน', thai_heading_style),
+                    Paragraph('โครงการ', thai_heading_style),
+                    Paragraph('ประเภท', thai_heading_style),
+                    Paragraph('ห้องนอน', thai_heading_style),
+                    Paragraph('ห้องน้ำ', thai_heading_style),
+                    Paragraph('พื้นที่ (ตร.ม.)', thai_heading_style),
+                    Paragraph('ราคา (บาท)', thai_heading_style)
+                ]
             ]
             
-            # Add house data
+            # Add house data with proper text wrapping
             for house in houses:
                 table_data.append([
-                    str(house['h_id']),
-                    house['h_title'],
-                    house['project_name'] or '-',
-                    house['type_name'] or '-',
-                    str(house['bedrooms'] or '0'),
-                    str(house['bathrooms'] or '0'),
-                    str(house['area'] or '0'),
-                    f"{float(house['price'] or 0):,.2f}"
+                    Paragraph(str(house['h_id']), thai_style),
+                    Paragraph(house['h_title'], thai_style),
+                    Paragraph(house.get('project_name', '-'), thai_style),
+                    Paragraph(house.get('type_name', '-'), thai_style),
+                    Paragraph(str(house.get('bedrooms', '0')), thai_style),
+                    Paragraph(str(house.get('bathrooms', '0')), thai_style),
+                    Paragraph(str(house.get('area', '0')), thai_style),
+                    Paragraph(f"{float(house.get('price', 0)):,.2f}", thai_style),
+                    Paragraph(str(house.get('view_count', '0')), thai_style)  # Add view count column
                 ])
             
-            # Set column widths (adjust these based on your content)
+            # Add view count column header
+            table_data[0].append(Paragraph('จำนวนการเข้าชม', thai_heading_style))
+            
+            # Sort houses by view count in descending order
+            if len(table_data) > 1:  # Check if there's data beyond the header
+                table_data[1:] = sorted(
+                    table_data[1:], 
+                    key=lambda x: int(x[-1].text) if x[-1].text.isdigit() else 0, 
+                    reverse=True
+                )
+            
+            # Set column widths to ensure text fits on one line
             col_widths = [
-                0.5*inch,   # ID
-                1.8*inch,   # House Name
-                1.5*inch,   # Project
-                1.2*inch,   # Type
-                0.6*inch,   # Bedrooms
-                0.6*inch,   # Bathrooms
+                0.5*inch,   # ID (0.5")
+                2.2*inch,   # House Name (slightly narrower)
+                1.5*inch,   # Project (narrower)
+                0.9*inch,   # Type (slightly narrower)
+                0.9*inch,   # Bedrooms
+                0.9*inch,   # Bathrooms
                 0.8*inch,   # Area
-                1.2*inch    # Price
+                1.2*inch,   # Price
+                1.3*inch    # View Count
             ]
             
             # Create the table with adjusted column widths
             table = Table(table_data, colWidths=col_widths, repeatRows=1)
             
-            # Set fonts for table content
-            table_font = thai_font_name
-            table_header_font = thai_bold_font
-            
-            # Define table style with explicit fonts
+            # Define table style with Thai fonts and proper text wrapping
             table_style = TableStyle([
                 # Header row
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E40AF')),  # Dark blue header
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('FONTNAME', (0, 0), (-1, 0), table_header_font),
+                ('FONTNAME', (0, 0), (-1, 0), 'NotoSansThai-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 9),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
                 ('TOPPADDING', (0, 0), (-1, 0), 6),
                 
                 # Data rows
-                ('FONTNAME', (0, 1), (-1, -1), table_font),
-                ('ENCODING', (0, 0), (-1, -1), 'UTF-8'),  # Ensure UTF-8 encoding
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # ID column centered
+                ('FONTNAME', (0, 1), (-1, -1), 'NotoSansThai'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEADING', (0, 0), (-1, -1), 12),  # Line height
+                
+                # Column alignments
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # ID column centered
                 ('ALIGN', (4, 1), (5, -1), 'CENTER'),  # Bed/Bath columns centered
-                ('ALIGN', (6, 1), (7, -1), 'RIGHT'),   # Area/Price right-aligned
+                ('ALIGN', (6, 1), (8, -1), 'RIGHT'),   # Area/Price/View count right-aligned
                 
                 # Grid and borders
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
                 ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#1E40AF')),
                 
                 # Text color for data rows
                 ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1F2937')),
                 
+                # Cell padding
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                
                 # Alternating row colors (zebra striping)
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Default white
-                ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#F3F4F6')),  # First data row
-                ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F3F4F6')),  # Third data row
-                ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#F3F4F6'))  # Fifth data row
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')])
             ])
             
             # Apply the table style
             table.setStyle(table_style)
             elements.append(table)
             
-            # Add page number footer
+            # Add page number footer with Thai font
             def add_page_number(canvas, doc):
                 canvas.saveState()
-                canvas.setFont('Helvetica', 8)
+                # Set Thai font for footer
+                canvas.setFont('NotoSansThai', 8)
+                
+                # Get current page number and total pages
                 page_num = canvas.getPageNumber()
-                text = f"Page {page_num}"
-                canvas.drawRightString(doc.width + doc.rightMargin - 20, 20, text)
-                # Draw only the time in the footer to avoid encoding issues
-                canvas.drawString(doc.leftMargin, 20, f"Generated: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+                
+                # Create footer text with Thai date
+                footer_date = f"สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+                footer_page = f"หน้า {page_num}"
+                
+                # Draw footer text
+                canvas.drawString(doc.leftMargin, 20, footer_date)
+                canvas.drawRightString(doc.width + doc.rightMargin - 20, 20, footer_page)
+                
+                # Add a thin line above footer
+                canvas.setStrokeColor(colors.HexColor('#E5E7EB'))
+                canvas.line(doc.leftMargin, 30, doc.width + doc.rightMargin, 30)
+                
                 canvas.restoreState()
             
             # Build the PDF with page numbers
             doc.build(elements, onFirstPage=add_page_number, onLaterPages=add_page_number)
             
-            # Get the value of the BytesIO buffer and write it to the response
+            # Get the value of the BytesIO buffer
             pdf = buffer.getvalue()
             buffer.close()
+            
+            if not pdf:
+                return "Error generating PDF: Empty content", 500
             
             # Create response with proper headers
             response = make_response(pdf)
             response.mimetype = 'application/pdf'
-            
-            # Use English filename to avoid encoding issues
-            filename = f"house_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-            response.headers['Content-Type'] = 'application/pdf; charset=utf-8'
+            response.headers['Content-Disposition'] = f'attachment; filename=house_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+            response.headers['Content-Length'] = len(pdf)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
             
             return response
             
@@ -4477,6 +4692,252 @@ def generate_pdf_report():
         return jsonify({'error': 'Failed to generate PDF'}), 500
 
 
+@app.route('/admin/reports/view-stats')
+def view_statistics():
+    """
+    Retrieves view statistics for the admin reports page.
+    Returns data for most viewed houses, views by type, and view trends.
+    """
+    if 'admin_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Get total views across all houses
+        cur.execute("""
+            SELECT COALESCE(SUM(view_count), 0) as total_views
+            FROM house
+        """)
+        total_views = cur.fetchone()[0]
+        
+        # Get today's views
+        cur.execute("""
+            SELECT COUNT(*) 
+            FROM house_views 
+            WHERE DATE(created_at) = CURDATE()
+        """)
+        todays_views = cur.fetchone()[0]
+        
+        # Get most viewed houses (top 5)
+        cur.execute("""
+            SELECT h.h_id, h.h_title, h.view_count, p.p_name as project_name
+            FROM house h
+            LEFT JOIN project p ON h.p_id = p.p_id
+            WHERE h.view_count > 0
+            ORDER BY h.view_count DESC
+            LIMIT 5
+        """)
+        most_viewed_houses = [
+            {'id': row[0], 'title': row[1], 'views': row[2], 'project': row[3]}
+            for row in cur.fetchall()
+        ]
+        
+        # Get views by house type
+        cur.execute("""
+            SELECT 
+                ht.t_name as type_name,
+                COALESCE(SUM(h.view_count), 0) as total_views
+            FROM house_type ht
+            LEFT JOIN house h ON ht.t_id = h.t_id
+            GROUP BY ht.t_id, ht.t_name
+            ORDER BY total_views DESC
+        """)
+        views_by_type = [
+            {'type': row[0], 'views': int(row[1] or 0)}
+            for row in cur.fetchall()
+        ]
+        
+        # Get views trend (last 30 days)
+        cur.execute("""
+            SELECT 
+                DATE(created_at) as view_date,
+                COUNT(*) as view_count
+            FROM house_views
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(created_at)
+            ORDER BY view_date
+        """)
+        views_trend = [
+            {'date': row[0].strftime('%Y-%m-%d'), 'views': row[1]}
+            for row in cur.fetchall()
+        ]
+        
+        return jsonify({
+            'success': True,
+            'total_views': total_views,
+            'most_viewed_houses': most_viewed_houses,
+            'views_by_type': views_by_type,
+            'views_trend': views_trend
+        })
+        
+    except Exception as e:
+        print(f"Error getting view statistics: {str(e)}")
+        return jsonify({'error': 'Failed to get view statistics'}), 500
+    finally:
+        cur.close()
+
+@app.route('/admin/view-stats')
+def admin_view_stats():
+    """
+    Renders the view statistics page.
+    
+    This route serves the HTML template where the user can view detailed
+    statistics about house views, including trends and most viewed houses.
+    It requires the user to be logged in as an administrator.
+    """
+    cursor = None
+    try:
+        # Debug: Print session info
+        print("\n=== Session Debug ===")
+        print(f"Session ID: {session.sid if 'sid' in dir(session) else 'N/A'}")
+        print(f"Session data: {dict(session)}")
+        print(f"Admin logged in: {'admin_loggedin' in session}")
+        
+        # Check if user is logged in as admin
+        if 'admin_id' not in session or 'admin_username' not in session:
+            print(f"Redirecting to login - Missing admin session data. Current session: {dict(session)}")
+            flash('กรุณาเข้าสู่ระบบในฐานะผู้ดูแลระบบก่อนดูหน้านี้', 'error')
+            return redirect(url_for('login'))
+        
+        # Get filter parameters
+        days = request.args.get('days', '30')
+        try:
+            days = int(days)
+        except ValueError:
+            days = 30
+        
+        # Get view statistics data
+        stats_data = view_statistics()
+        
+        # Get database connection and cursor
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Get house types for filter
+        cursor.execute("SELECT * FROM house_type ORDER BY t_name")
+        house_types = cursor.fetchall()
+        
+        # Get top 5 most viewed houses
+        cursor.execute("""
+            SELECT h.h_id, h.h_title, h.price, h.bedrooms, h.bathrooms, h.living_area,
+                   h.parking_space, h.no_of_floors, h.status, h.view_count,
+                   ht.t_name as type_name, p.p_name as project_name,
+                   COUNT(v.id) as total_views
+            FROM house h
+            LEFT JOIN house_views v ON h.h_id = v.house_id
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
+            LEFT JOIN project p ON h.p_id = p.p_id
+            GROUP BY h.h_id, h.h_title, h.price, h.bedrooms, h.bathrooms, h.living_area,
+                     h.parking_space, h.no_of_floors, h.status, h.view_count,
+                     ht.t_name, p.p_name
+            ORDER BY total_views DESC
+            LIMIT 5
+        """)
+        most_viewed_houses = cursor.fetchall()
+        
+        # Get views by house type
+        cursor.execute("""
+            SELECT 
+                ht.t_id as id, 
+                ht.t_name as name, 
+                COUNT(DISTINCT v.id) as view_count
+            FROM house_type ht
+            LEFT JOIN house h ON ht.t_id = h.t_id
+            LEFT JOIN house_views v ON h.h_id = v.house_id
+            GROUP BY ht.t_id, ht.t_name
+            ORDER BY view_count DESC
+        """)
+        views_by_type = cursor.fetchall()
+        
+        # Get view trends (last X days based on the filter)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Generate a series of dates for the selected period
+        date_series = []
+        current_date = start_date
+        while current_date <= end_date:
+            date_series.append(current_date.strftime('%Y-%m-%d'))
+            current_date += timedelta(days=1)
+        
+        # Get view counts for each day in the period
+        cursor.execute("""
+            SELECT 
+                DATE(v.created_at) as view_date, 
+                COUNT(DISTINCT v.id) as view_count
+            FROM house_views v
+            WHERE v.created_at BETWEEN %s AND %s
+            GROUP BY DATE(v.created_at)
+            ORDER BY view_date
+        """, (start_date, end_date))
+        
+        view_trends = cursor.fetchall()
+        
+        # Create a dictionary of date: count for easy lookup
+        view_counts_dict = {row['view_date'].strftime('%Y-%m-%d'): row['view_count'] for row in view_trends}
+        
+        # Ensure we have data for all dates in the range
+        view_dates = date_series
+        view_counts = [int(view_counts_dict.get(date, 0)) for date in date_series]
+        
+        # Ensure all numeric fields are properly converted to int
+        for house in most_viewed_houses:
+            for key in ['view_count', 'h_id', 'price', 'bedrooms', 'bathrooms', 'living_area', 'parking_space', 'no_of_floors']:
+                if key in house and house[key] is not None:
+                    try:
+                        house[key] = int(float(house[key]))
+                    except (ValueError, TypeError):
+                        house[key] = 0
+        
+        # Convert views_by_type to a list of dicts with proper int conversion
+        views_by_type_list = []
+        for row in views_by_type:
+            try:
+                view_count = int(float(row['view_count'])) if row['view_count'] is not None else 0
+                views_by_type_list.append({
+                    'id': int(float(row['id'])),
+                    'name': str(row['name']),
+                    'view_count': view_count
+                })
+            except (ValueError, TypeError, KeyError) as e:
+                print(f"Error processing views_by_type row: {row}, error: {str(e)}")
+        
+        # Prepare data for template with proper JSON serialization
+        template_data = {
+            'title': 'สถิติการเข้าชม',
+            'view_dates': view_dates,
+            'view_counts': view_counts,
+            'most_viewed_houses': most_viewed_houses,
+            'views_by_type': views_by_type_list,
+            'selected_days': int(days),
+            'house_types': house_types,
+            'stats_data': stats_data
+        }
+        
+        # Debug: Print data being sent to template
+        print("\n=== Template Data ===")
+        print(f"view_dates type: {type(view_dates[0]) if view_dates else 'empty'}")
+        print(f"view_counts type: {type(view_counts[0]) if view_counts else 'empty'}")
+        print(f"views_by_type sample: {views_by_type_list[:1] if views_by_type_list else 'empty'}")
+        print(f"most_viewed_houses sample: {most_viewed_houses[0] if most_viewed_houses else 'empty'}")
+        
+        return render_template('admin_view_stats.html', **template_data)
+        
+    except Exception as e:
+        print(f"Error in admin_view_stats: {str(e)}")
+        flash('เกิดข้อผิดพลาดในการโหลดหน้าสถิติการเข้าชม', 'error')
+        return redirect(url_for('admin_dashboard'))
+        
+    finally:
+        # Ensure cursor is always closed
+        if cursor is not None:
+            try:
+                cursor.close()
+            except:
+                pass
+    
+    return render_template('admin_view_stats.html', **template_data)
+
 @app.route('/admin/reports/chart-data')
 def reports_chart_data():
     """
@@ -4492,6 +4953,10 @@ def reports_chart_data():
     try:
         # Get filter parameters from the request arguments
         search_query = request.args.get('search', '')
+        
+        # Get database connection
+        cur = mysql.connection.cursor()
+        
         project_filter = request.args.get('project', '')
         type_filter = request.args.get('type', '')
         bedroom_filter = request.args.get('bedrooms', '')
@@ -4502,10 +4967,12 @@ def reports_chart_data():
         # Build the base WHERE clause and parameters for all queries
         where_conditions = []
         params = []
+        join_conditions = []
 
         if search_query:
             where_conditions.append("(h.h_title LIKE %s OR h.h_description LIKE %s OR p.p_name LIKE %s)")
             params.extend([f"%{search_query}%"] * 3)
+            join_conditions.append("LEFT JOIN project p ON h.p_id = p.p_id")
         
         if project_filter:
             where_conditions.append("h.p_id = %s")
@@ -4532,11 +4999,77 @@ def reports_chart_data():
             params.append(status_filter)
 
         where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        join_clause = " ".join(join_conditions) if join_conditions else ""
+        
+        # Get database connection
+        cur = mysql.connection.cursor()
+        
+        # Get total views across all houses
+        cur.execute(f"""
+            SELECT COALESCE(SUM(view_count), 0) as total_views
+            FROM house h
+            {join_clause}
+            WHERE {where_clause}
+        """, tuple(params))
+        total_views = cur.fetchone()[0]
+        
+        # Get most viewed houses (top 5) with filters
+        cur.execute(f"""
+            SELECT h.h_id, h.h_title, h.view_count
+            FROM house h
+            {join_clause}
+            WHERE {where_clause} AND h.view_count > 0
+            ORDER BY h.view_count DESC
+            LIMIT 5
+        """, tuple(params))
+        most_viewed_houses = [
+            {'id': row[0], 'title': row[1], 'views': row[2]}
+            for row in cur.fetchall()
+        ]
+        
+        # Get views by house type with filters
+        cur.execute(f"""
+            SELECT 
+                COALESCE(ht.t_name, 'ไม่มีประเภท') as type_name,
+                COUNT(h.h_id) as house_count
+            FROM house h
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
+            LEFT JOIN project p ON h.p_id = p.p_id
+            WHERE {where_clause}
+            GROUP BY ht.t_id, ht.t_name
+            ORDER BY house_count DESC
+        """, tuple(params))
+        views_by_type = [
+            {'type': row[0], 'views': int(row[1] or 0)}
+            for row in cur.fetchall()
+        ]
+        
+        # Get views trend (last 30 days) with filters
+        cur.execute(f"""
+            SELECT 
+                DATE(hv.created_at) as view_date,
+                COUNT(*) as view_count
+            FROM house_views hv
+            JOIN house h ON hv.house_id = h.h_id
+            {join_clause}
+            WHERE hv.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            AND {where_clause}
+            GROUP BY DATE(hv.created_at)
+            ORDER BY view_date
+        """, tuple(params))
+        views_trend = [
+            {'date': row[0].strftime('%Y-%m-%d'), 'views': row[1]}
+            for row in cur.fetchall()
+        ]
 
         # Initialize cursor and data dictionaries
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         stats = {}
         charts = {}
+        
+        # Debug: Print the where_clause and params
+        print("Where clause:", where_clause)
+        print("Params:", params)
         
         # --- Fetch Statistics ---
         
@@ -4606,9 +5139,14 @@ def reports_chart_data():
                 CASE WHEN p.p_name IS NULL THEN 'ไม่มีโครงการ' ELSE p.p_name END
             ORDER BY house_count DESC
         """
+        
+        # Debug: Print the queries
+        print("Houses by type query:", query_houses_by_type)
+        print("Houses by project query:", query_houses_by_project)
         cur.execute(query_houses_by_project, tuple(params))
         charts['housesByProject'] = cur.fetchall()
 
+        # Houses by status
         # Houses by status
         query_houses_by_status = f"""
             SELECT 
@@ -4616,13 +5154,20 @@ def reports_chart_data():
                     WHEN h.status = 'Available' THEN 'ว่าง' 
                     WHEN h.status = 'Reserved' THEN 'จองแล้ว' 
                     WHEN h.status = 'Sold' THEN 'ขายแล้ว' 
-                    ELSE h.status 
+                    ELSE COALESCE(h.status, 'ไม่ระบุ')
                 END as status,
                 COUNT(*) as count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
             WHERE {where_clause}
-            GROUP BY h.status
+            GROUP BY 
+                CASE 
+                    WHEN h.status = 'Available' THEN 'ว่าง' 
+                    WHEN h.status = 'Reserved' THEN 'จองแล้ว' 
+                    WHEN h.status = 'Sold' THEN 'ขายแล้ว' 
+                    ELSE COALESCE(h.status, 'ไม่ระบุ')
+                END
             ORDER BY count DESC
         """
         cur.execute(query_houses_by_status, tuple(params))
@@ -4631,30 +5176,29 @@ def reports_chart_data():
         # Houses by bedrooms
         query_houses_by_bedrooms = f"""
             SELECT 
-                CONCAT(bedrooms, ' ห้องนอน') as bedrooms,
+                COALESCE(bedrooms, 0) as bedrooms,
                 COUNT(*) as count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
             WHERE {where_clause}
-            GROUP BY bedrooms
-            ORDER BY bedrooms
+            GROUP BY COALESCE(bedrooms, 0)
+            ORDER BY COALESCE(bedrooms, 0)
         """
         cur.execute(query_houses_by_bedrooms, tuple(params))
-        charts['housesByBedrooms'] = [
-            {'bedrooms': row['bedrooms'], 'count': row['count']} 
-            for row in cur.fetchall()
-        ]
+        charts['housesByBedrooms'] = cur.fetchall()
 
         # Houses by bathrooms
         query_houses_by_bathrooms = f"""
             SELECT 
-                bathrooms,
+                COALESCE(bathrooms, 0) as bathrooms,
                 COUNT(*) as count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
             WHERE {where_clause}
-            GROUP BY bathrooms
-            ORDER BY bathrooms
+            GROUP BY COALESCE(bathrooms, 0)
+            ORDER BY COALESCE(bathrooms, 0)
         """
         cur.execute(query_houses_by_bathrooms, tuple(params))
         charts['housesByBathrooms'] = cur.fetchall()
@@ -4663,6 +5207,7 @@ def reports_chart_data():
         query_houses_by_area = f"""
             SELECT 
                 CASE
+                    WHEN living_area IS NULL THEN 'ไม่ระบุ'
                     WHEN living_area < 50 THEN '0-50 ตร.ม.'
                     WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
                     WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
@@ -4673,34 +5218,132 @@ def reports_chart_data():
                 COUNT(*) as count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
+            LEFT JOIN house_type ht ON h.t_id = ht.t_id
             WHERE {where_clause}
-            GROUP BY area_range
+            GROUP BY 
+                CASE
+                    WHEN living_area IS NULL THEN 'ไม่ระบุ'
+                    WHEN living_area < 50 THEN '0-50 ตร.ม.'
+                    WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
+                    WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
+                    WHEN living_area BETWEEN 150 AND 199 THEN '150-199 ตร.ม.'
+                    WHEN living_area >= 200 THEN '200+ ตร.ม.'
+                    ELSE 'ไม่ระบุ'
+                END
             ORDER BY 
-                CASE area_range
-                    WHEN '0-50 ตร.ม.' THEN 1
-                    WHEN '50-99 ตร.ม.' THEN 2
-                    WHEN '100-149 ตร.ม.' THEN 3
-                    WHEN '150-199 ตร.ม.' THEN 4
-                    WHEN '200+ ตร.ม.' THEN 5
+                CASE 
+                    WHEN CASE
+                        WHEN living_area IS NULL THEN 'ไม่ระบุ'
+                        WHEN living_area < 50 THEN '0-50 ตร.ม.'
+                        WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
+                        WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
+                        WHEN living_area BETWEEN 150 AND 199 THEN '150-199 ตร.ม.'
+                        WHEN living_area >= 200 THEN '200+ ตร.ม.'
+                        ELSE 'ไม่ระบุ'
+                    END = 'ไม่ระบุ' THEN 0
+                    WHEN living_area < 50 THEN 1
+                    WHEN living_area BETWEEN 50 AND 99 THEN 2
+                    WHEN living_area BETWEEN 100 AND 149 THEN 3
+                    WHEN living_area BETWEEN 150 AND 199 THEN 4
+                    WHEN living_area >= 200 THEN 5
                     ELSE 6
                 END
         """
         cur.execute(query_houses_by_area, tuple(params))
         charts['housesByLivingArea'] = cur.fetchall()
 
-        return jsonify({
+        # Debug: Print number of params and placeholders
+        print(f"Executing queries with {len(params)} parameters")
+        
+        # Execute houses by type query
+        cur.execute(query_houses_by_type, tuple(params))
+        houses_by_type = cur.fetchall()
+        print(f"Houses by type results: {houses_by_type}")
+        
+        # Execute houses by project query
+        cur.execute(query_houses_by_project, tuple(params))
+        houses_by_project = cur.fetchall()
+        print(f"Houses by project results: {houses_by_project}")
+        
+        # Execute houses by status query
+        cur.execute(query_houses_by_status, tuple(params))
+        houses_by_status = cur.fetchall()
+        print(f"Houses by status results: {houses_by_status}")
+        
+        # Execute houses by bedrooms query
+        cur.execute(query_houses_by_bedrooms, tuple(params))
+        houses_by_bedrooms = cur.fetchall()
+        print(f"Houses by bedrooms results: {houses_by_bedrooms}")
+        
+        # Execute houses by bathrooms query
+        cur.execute(query_houses_by_bathrooms, tuple(params))
+        houses_by_bathrooms = cur.fetchall()
+        print(f"Houses by bathrooms results: {houses_by_bathrooms}")
+        
+        # Execute houses by living area query
+        cur.execute(query_houses_by_area, tuple(params))
+        houses_by_living_area = cur.fetchall()
+        print(f"Houses by living area results: {houses_by_living_area}")
+        
+        # Prepare the response with the data we've already fetched
+        response_data = {
             'stats': stats,
-            'charts': charts
-        })
+            'charts': {
+                'housesByType': houses_by_type if houses_by_type else [],
+                'housesByProject': houses_by_project if houses_by_project else [],
+                'housesByStatus': houses_by_status if houses_by_status else [],
+                'housesByBedrooms': [{'bedrooms': str(row['bedrooms']), 'count': row['count']} for row in houses_by_bedrooms] if houses_by_bedrooms else [],
+                'housesByBathrooms': [{'bathrooms': str(row['bathrooms']), 'count': row['count']} for row in houses_by_bathrooms] if houses_by_bathrooms else [],
+                'housesByLivingArea': houses_by_living_area if houses_by_living_area else []
+            }
+        }
+        
+        print("Final response data:", json.dumps(response_data, default=str))
+        return jsonify(response_data)
 
     except Exception as e:
-        print(f"Error in reports_chart_data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Error executing queries: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
     finally:
         if 'cur' in locals() and cur:
             cur.close()
 
+@app.route('/create_house_views_table')
+def create_house_views_table():
+    try:
+        cur = mysql.connection.cursor()
+        # Create house_views table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS house_views (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            house_id INT NOT NULL,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (house_id) REFERENCES houses(h_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """)
+        
+        # Create indexes
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_house_views_house_id ON house_views(house_id);
+        CREATE INDEX IF NOT EXISTS idx_house_views_created_at ON house_views(created_at);
+        """)
+        
+        mysql.connection.commit()
+        cur.close()
+        return "house_views table created successfully!"
+    except Exception as e:
+        return f"Error creating house_views table: {str(e)}"
+
+@app.route('/test/views')
+def test_views_page():
+    return render_template('test_views.html')
+
 if __name__ == '__main__':
     # Call the font setup function inside the main block
     setup_thai_font()
-    app.run(debug=True) 
+    app.run(debug=True)

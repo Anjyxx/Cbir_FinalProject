@@ -77,6 +77,8 @@
                         <!-- Sort Order -->
                         <div>
                             <select name="sort" class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="views_desc" {% if sort_order == 'views_desc' or not sort_order %}selected{% endif %}>จำนวนการเข้าชม (มากไปน้อย)</option>
+                                <option value="views_asc" {% if sort_order == 'views_asc' %}selected{% endif %}>จำนวนการเข้าชม (น้อยไปมาก)</option>
                                 <option value="name_asc" {% if sort_order == 'name_asc' %}selected{% endif %}>ชื่อบ้านจัดสรร (A-Z)</option>
                                 <option value="name_desc" {% if sort_order == 'name_desc' %}selected{% endif %}>ชื่อบ้านจัดสรร (Z-A)</option>
                                 <option value="type_asc" {% if sort_order == 'type_asc' %}selected{% endif %}>ประเภทบ้าน (A-Z)</option>
@@ -103,10 +105,10 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">บ้านจ</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">บ้าน</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภทบ้าน</th>
-                                
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จังหวัดในโครงการ</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวนการเข้าชม</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
                             </tr>
@@ -133,6 +135,15 @@
                                 
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">{{ house.project_name }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        {{ house.view_count|default('0', true) }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% if house.status == 'available' %}
