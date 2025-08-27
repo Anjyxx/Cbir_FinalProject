@@ -847,14 +847,27 @@ def admin_dashboard():
 
 class PDF(FPDF, HTMLMixin):
     def header(self):
-        # Top bar (light blue)
-        self.set_fill_color(224, 242, 254)  # #e0f2fe
-        self.rect(0, 0, self.w, 20, 'F')
-        self.set_xy(0, 7)
+        # Top bar (lighter blue)
+        self.set_fill_color(240, 249, 255)  # #f0f9ff
+        self.rect(0, 0, self.w, 30, 'F')  # Increased height to accommodate logo
+        
+        # Add company logo (left side)
+        logo_path = os.path.join('static', 'img', 'logo24.png')
+        if os.path.exists(logo_path):
+            self.image(logo_path, x=10, y=5, h=20)  # Adjust position and size as needed
+        
+        # Add report title (centered)
+        self.set_xy(0, 8)
         self.set_font('NotoSansThai', 'B', 16)
         self.set_text_color(37, 99, 235)  # #2563eb
         self.cell(0, 10, 'BAANTANG Dashboard Report', 0, 1, 'C')
-        self.ln(2)
+        
+        # Add date (right side)
+        self.set_xy(-50, 8)
+        self.set_font('NotoSansThai', '', 10)
+        self.cell(0, 10, datetime.now().strftime('%d/%m/%Y %H:%M'), 0, 0, 'R')
+        
+        self.ln(12)  # Adjust spacing below header
         self.set_text_color(0, 0, 0)
 
     def footer(self):
@@ -2710,9 +2723,9 @@ def track_house_view(house_id, request):
     
     # Log the view
     cur.execute("""
-        INSERT INTO house_views (house_id, ip_address, user_agent)
-        VALUES (%s, %s, %s)
-    """, (house_id, ip, request.user_agent.string))
+        INSERT INTO house_views (house_id, ip_address)
+        VALUES (%s, %s)
+    """, (house_id, ip)) 
     
     # Update the view count in the house table
     cur.execute("""

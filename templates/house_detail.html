@@ -7,7 +7,121 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Kanit', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Kanit', sans-serif;
+            color: #1f2937;
+            line-height: 1.6;
+            background-color: #f9fafb;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .hover-scale {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-scale:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .feature-badge {
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            color: #4b5563;
+            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .feature-badge:hover {
+            background-color: #e5e7eb;
+            transform: translateY(-1px);
+        }
+        
+        .feature-badge svg {
+            color: #3b82f6;
+        }
+        
+        .price-tag {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        
+        .description-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .contact-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gallery-thumbnail {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .gallery-thumbnail:hover {
+            transform: scale(1.02);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .qr-code {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .qr-code:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="font-kanit bg-white">
@@ -82,18 +196,19 @@
     <div class="max-w-6xl mx-auto p-4 pt-8">
         <div class="flex gap-4 mb-6">
             <div class="flex-1">
-                <button onclick="openImageModal(document.getElementById('mainHouseImage').src)" class="focus:outline-none w-full">
-                    <img id="mainHouseImage" src="{{ house.main_image_url }}" alt="{{ house.title }}" class="rounded-2xl w-full h-[420px] object-cover shadow" />
+                <button onclick="openImageModal(document.getElementById('mainHouseImage').src)" class="focus:outline-none w-full hover-scale">
+                    <img id="mainHouseImage" src="{{ house.main_image_url }}" alt="{{ house.title }}" class="rounded-2xl w-full h-[420px] object-cover shadow-lg transition-all duration-300 hover:shadow-xl" />
                 </button>
             </div>
             <div class="flex flex-col gap-4 w-48">
                 {% for img in house.gallery_images[:3] %}
-                    <img src="{{ img }}" alt="Gallery" class="rounded-2xl w-full h-24 object-cover shadow cursor-pointer border-2 border-transparent hover:border-blue-400 transition" onclick="document.getElementById('mainHouseImage').src='{{ img }}'" />
+                    <img src="{{ img }}" alt="Gallery" class="gallery-thumbnail w-full h-24 object-cover cursor-pointer" 
+                         onclick="document.getElementById('mainHouseImage').src='{{ img }}'" />
                 {% endfor %}
                 {% if house.gallery_images|length > 3 %}
-                    <button onclick="openGalleryModal(3)" class="relative w-full h-24 rounded-2xl shadow focus:outline-none cursor-pointer">
-                        <img src="{{ house.gallery_images[3] }}" alt="More images" class="rounded-2xl w-full h-full object-cover opacity-70" />
-                        <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-lg bg-black bg-opacity-40 rounded-2xl">
+                    <button onclick="openGalleryModal(3)" class="relative w-full h-24 rounded-2xl overflow-hidden focus:outline-none cursor-pointer group">
+                        <img src="{{ house.gallery_images[3] }}" alt="More images" class="w-full h-full object-cover transition-all duration-300 group-hover:scale-105" />
+                        <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-lg bg-black bg-opacity-40 transition-all duration-300 group-hover:bg-opacity-50">
                             +{{ house.gallery_images|length - 3 }}
                         </div>
                     </button>
@@ -200,93 +315,92 @@
             });
         </script>
 
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-            <div>
-                <h1 class="text-3xl font-bold">{{ house.title }}</h1>
-                <div class="flex items-center text-blue-500 mb-2">
-                    <img src="{{ url_for('static', filename='img/icons/location_icon.png') }}" alt="Location Icon" class="w-4 h-4 text-blue-500">
-                    <span>{{ house.project_address or 'No address available' }}</span>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div class="mb-4 md:mb-0">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{{ house.title }}</h1>
+                <div class="flex items-center text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-gray-700">{{ house.project_address or 'No address available' }}</span>
                 </div>
             </div>
             <div class="text-right mt-2 md:mt-0">
                 <div class="text-3xl font-bold text-blue-700">{{ house.price | currency }}</div>
                 {% if house.area %}
-                <div class="text-gray-500 text-sm">{{ house.price_per_sqm }} / sq.m.</div>
+                <div class="text-gray-500 text-sm mt-1">{{ house.price_per_sqm }} / ตร.ม.</div>
                 {% endif %}
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-4 mb-6">
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <img src="/static/img/icons/bath_icon.png" class="w-5 h-5"> {{ house.bathrooms or '-' }} ห้องน้ำ
+        <div class="flex flex-wrap gap-3 mb-8">
+            <div class="feature-badge flex items-center gap-2">
+                <img src="/static/img/icons/bed_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.bedrooms or '-' }} ห้องนอน
             </div>
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <img src="/static/img/icons/bed_icon.png" class="w-5 h-5"> {{ house.bedrooms or '-' }} ห้องนอน
+            <div class="feature-badge flex items-center gap-2">
+                <img src="/static/img/icons/bath_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.bathrooms or '-' }} ห้องน้ำ
             </div>
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <img src="/static/img/icons/area_icon.png" class="w-5 h-5"> {{ house.living_area or '-' }} ตร.ม
+            <div class="feature-badge flex items-center gap-2">
+                <img src="/static/img/icons/area_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.living_area or '-' }} ตร.ม.
             </div>
             {% if house.parking_space %}
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-                {{ house.parking_space }}  จอดรถ
+            <div class="feature-badge flex items-center gap-2">
+                <img src="/static/img/icons/parking_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.parking_space }} ที่จอดรถ
             </div>
             {% endif %}
             {% if house.no_of_floors %}
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
+            <div class="feature-badge flex items-center gap-2">
+                <img src="/static/img/icons/projects.png" class="h-5 w-5" alt="calendar icon">
                 {{ house.no_of_floors }} ชั้น
-            </div>
-            {% endif %}
-            {% if house.living_room %}
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg> {{ house.living_room }} ห้องน้ำ
-            </div>
-            {% endif %}
-            {% if house.garage %}
-            <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13v-2a4 4 0 014-4h10a4 4 0 014 4v2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 18h14a2 2 0 002-2v-5a2 2 0 00-2-2H5a2 2 0 00-2 2v5a2 2 0 002 2z"/></svg> {{ house.garage }} Garage
             </div>
             {% endif %}
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2">
-                <div class="mb-4">
-                    <h2 class="font-semibold text-lg mb-2">รายละเอียดบ้าน</h2>
-                    <div class="whitespace-pre-line">{{ house.house_description or 'ไม่มีรายละเอียด' }}</div>
+            <div class="md:col-span-2 space-y-6">
+                <div class="description-section">
+                    <h2 class="section-title">รายละเอียดบ้าน</h2>
+                    <div class="text-gray-700 leading-relaxed whitespace-pre-line">
+                        {{ house.house_description or 'ไม่มีรายละเอียด' }}
+                    </div>
                 </div>
                 {% if house.latitude and house.longitude %}
-                <div class="mb-4">
-                    <h2 class="font-semibold text-lg mb-2">Location</h2>
+                <div class="map-container">
+                    <h2 class="section-title px-4 pt-4">ที่ตั้งบนแผนที่</h2>
                     <iframe
                         width="100%"
-                        height="250"
+                        height="300"
                         frameborder="0"
                         style="border:0"
-                        src="https://www.google.com/maps?q={{ house.latitude }},{{ house.longitude }}&hl=es;z=14&output=embed"
-                        allowfullscreen>
+                        src="https://www.google.com/maps?q={{ house.latitude }},{{ house.longitude }}&hl=th&z=15&output=embed"
+                        allowfullscreen
+                        class="w-full">
                     </iframe>
                 </div>
                 {% endif %}
             </div>
-            <div>
-                <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-                    <h2 class="font-semibold text-lg mb-4">Contact</h2>
-                    <a href="tel:0814706611" class="flex items-center w-full bg-blue-600 text-white rounded-lg px-4 py-3 text-lg font-semibold justify-center hover:bg-blue-700 transition mb-3">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2zm6-12a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zm6-12a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zm0 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            <div class="space-y-6">
+                <div class="contact-card">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">ติดต่อสอบถาม</h2>
+                    <a href="tel:0814706611" class="flex items-center justify-center w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl px-6 py-3 text-lg font-semibold hover:opacity-90 transition-all duration-300 shadow-md hover:shadow-lg mb-4">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
-                        081 470 6611, 095 553 3366
+                        081-470-6611,095-553-3366
                     </a>
-                    <div class="flex flex-col items-center mt-4">
-                        <div class="mb-2 font-medium">Add us on LINE</div>
-                        <img src="/static/img/line_qr.jpg" alt="Line QR Code" class="w-40 h-40 object-contain rounded-lg border">
-                        <div class="text-gray-500 text-sm mt-2">Scan to chat with us on LINE</div>
+                    <div class="text-center text-gray-600 mb-4">หรือ</div>
+                    <div class="flex flex-col items-center">
+                        <div class="font-medium text-gray-700 mb-3">แอด LINE มาสอบถามได้เลย</div>
+                        <div class="qr-code mb-3">
+                            <img src="/static/img/line_qr.jpg" alt="Line QR Code" class="w-32 h-32 object-contain">
+                        </div>
+                        <div class="text-sm text-gray-500">สแกน QR Code เพื่อเพิ่มเพื่อน</div>
+                        <div class="mt-2 text-sm font-medium text-blue-600">@baantang</div>
                     </div>
                 </div>
             </div>

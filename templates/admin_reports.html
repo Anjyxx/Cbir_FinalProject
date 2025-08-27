@@ -197,21 +197,21 @@
     <div class="flex min-h-screen">
         {% include '_admin_sidebar.html' %}
     
-        <main class="flex-1 overflow-x-hidden overflow-y-auto">
-            <div class="container mx-auto px-4 py-8">
+        <main class="flex-1 overflow-x-hidden overflow-y-auto mx-4">
+            <div class="w-full py-8">
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-800">รายงาน</h1>
                     <p class="text-gray-600 mt-1">รายงานข้อมูลอสังหาริมทรัพย์</p>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8 modern-card">
-                    <div class="bg-gradient-to-r from-white-600 to-white-800 px-6 py-4">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-2 mx-6">
+                    <div class="bg-gradient-to-r from-white-600 to-white-800 px-6 py-3">
                         <h2 class="text-xl font-semibold text-Black">
                             <i class="fas fa-filter mr-2"></i> กรองข้อมูลบ้าน
                         </h2>
                     </div>
                     
-                    <form id="filterForm" class="p-6">
+                    <form id="filterForm" class="px-6 py-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                             <!-- ประเภทบ้าน -->
                             <div class="lg:col-span-2">
@@ -246,7 +246,7 @@
                             <!-- จำนวนห้องนอน -->
                             <div class="lg:col-span-2">
                                 <label for="bedrooms" class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-bed mr-1 text-blue-600"></i> ห้องนอน
+                                    <i class="fas fa-bed mr-1 text-blue-600"></i> ลักษณะบ้าน
                                 </label>
                                 <select id="bedrooms" name="bedrooms" class="select2 w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition duration-150 ease-in-out">
                                     <option value="">ทั้งหมด</option>
@@ -275,75 +275,127 @@
                     </form>
                     </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="modern-card">
-                        <div class="flex items-center space-x-4">
-                            <div class="stats-icon bg-blue-100 text-blue-600">
-                                <i class="fas fa-home text-2xl"></i>
-                            </div>
-                            <div>
-                                <div class="text-gray-500 text-sm">จำนวนบ้านทั้งหมด</div>
-                                <div id="totalHousesCount" class="text-3xl font-bold mt-1">0</div>
-                            </div>
+                <!-- Top Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 mx-6">
+                    <!-- Total Houses -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 flex items-center">
+                        <div class="p-3 rounded-xl bg-blue-100 text-blue-600 mr-4">
+                            <i class="fas fa-home text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนบ้านทั้งหมด</p>
+                            <h3 id="totalHousesCount" class="text-2xl font-bold">0</h3>
                         </div>
                     </div>
-                    <div class="modern-card">
-                        <div class="flex items-center space-x-4">
-                            <div class="stats-icon bg-purple-100 text-purple-600">
-                                <i class="fas fa-building text-2xl"></i>
-                            </div>
-                            <div>
-                                <div class="text-gray-500 text-sm">จำนวนโครงการทั้งหมด</div>
-                                <div id="totalProjectsCount" class="text-3xl font-bold mt-1">0</div>
-                            </div>
+                    
+                    <!-- Total Projects -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 flex items-center">
+                        <div class="p-3 rounded-xl bg-purple-100 text-purple-600 mr-4">
+                            <i class="fas fa-building text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนโครงการทั้งหมด</p>
+                            <h3 id="totalProjectsCount" class="text-2xl font-bold">0</h3>
                         </div>
                     </div>
-                    <div class="modern-card">
-                        <div class="flex items-center space-x-4">
-                            <div class="stats-icon bg-green-100 text-green-600">
-                                <i class="fas fa-th-large text-2xl"></i>
-                            </div>
-                            <div>
-                                <div class="text-gray-500 text-sm">จำนวนประเภทบ้านทั้งหมด</div>
-                                <div id="totalTypesCount" class="text-3xl font-bold mt-1">0</div>
-                            </div>
+                    
+                    <!-- Total House Types -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 flex items-center">
+                        <div class="p-3 rounded-xl bg-green-100 text-green-600 mr-4">
+                            <i class="fas fa-th-large text-2xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนประเภทบ้านทั้งหมด</p>
+                            <h3 id="totalTypesCount" class="text-2xl font-bold">0</h3>
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามประเภท</h3>
-                        <div class="chart-container">
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mx-6">
+                    <!-- Row 1 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามประเภท</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByTypeChart"></canvas>
                         </div>
                     </div>
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามโครงการ</h3>
-                        <div class="chart-container">
+
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามโครงการ</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByProjectChart"></canvas>
                         </div>
                     </div>
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามสถานะ</h3>
-                        <div class="chart-container">
+
+                    <!-- Row 2 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามสถานะ</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByStatusChart"></canvas>
                         </div>
                     </div>
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามห้องนอน</h3>
-                        <div class="chart-container">
+
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามห้องนอน</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByBedroomsChart"></canvas>
                         </div>
                     </div>
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามห้องน้ำ</h3>
-                        <div class="chart-container">
+
+                    <!-- Row 3 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามห้องน้ำ</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByBathroomsChart"></canvas>
                         </div>
                     </div>
-                    <div class="modern-card chart-wrapper">
-                        <h3 class="text-lg font-semibold mb-4">จำนวนบ้านตามพื้นที่ใช้สอย</h3>
-                        <div class="chart-container">
+
+                    <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">จำนวนบ้านตามพื้นที่ใช้สอย</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-1 rounded hover:bg-gray-100">
+                                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 300px;">
                             <canvas id="housesByLivingAreaChart"></canvas>
                         </div>
                     </div>
