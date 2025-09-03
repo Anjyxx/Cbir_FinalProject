@@ -193,14 +193,54 @@ def set_charset(response):
     response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
 
-# MySQL Configuration
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'projectdb'
-app.config['MYSQL_PORT'] = 3307
+# Database Configuration
+import os
+from urllib.parse import urlparse
 
-mysql = MySQL(app)
+# Check if we're running on Railway with PostgreSQL
+if 'DATABASE_URL' in os.environ:
+    # Parse the DATABASE_URL environment variable
+    db_url = urlparse(os.environ['DATABASE_URL'])
+    
+    # Configure PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # For MySQL compatibility in code
+    app.config['MYSQL_HOST'] = db_url.hostname
+    app.config['MYSQL_USER'] = db_url.username
+    app.config['MYSQL_PASSWORD'] = db_url.password
+    app.config['MYSQL_DB'] = db_url.path[1:]  # Remove the leading '/'
+    
+    # Initialize SQLAlchemy for PostgreSQL
+    from flask_sqlalchemy import SQLAlchemy
+    db = SQLAlchemy(app)
+    
+    # For backward compatibility
+    class MySQL:
+        def __init__(self, app):
+            self.connection = db.engine.connect()
+            
+        def get_db(self):
+            return self.connection
+            
+    mysql = MySQL(app)
+    
+    # Create tables if they don't exist
+    @app.before_first_request
+    def create_tables():
+        db.create_all()
+        
+else:
+    # Local MySQL configuration
+    app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
+    app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
+    app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
+    app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'housing_db')
+    app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+    
+    # Initialize MySQL
+    mysql = MySQL(app)
 csrf = CSRFProtect(app)
 
 
@@ -3012,8 +3052,8 @@ def admin_add_user():
             
             # Insert new admin user
             cur.execute("""
-                INSERT INTO admins (username, email, password, first_name, last_name, role, status, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                INSERT INTO admins (username, email, password, first_name, last_name, role, status, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
             """, (username, email, hashed_password, first_name, last_name, role, status))
             
             mysql.connection.commit()
@@ -4438,7 +4478,7 @@ def generate_pdf_report():
                     leading=14,               # Reduced from 20
                     spaceAfter=8,             # Reduced from 12
                     alignment=TA_CENTER,
-                    textColor=colors.HexColor('#333333')  # Dark gray instead of black
+                    textColor=colors.white  # White text for better visibility
                 )
                 
                 # Create custom style for table cells (lighter and more compact)
@@ -4489,9 +4529,7 @@ def generate_pdf_report():
                                  rightMargin=20, leftMargin=20, 
                                  topMargin=40, bottomMargin=20)
             elements = []
-            
-            
-            
+                    
             # Add today's views
             views_text = f"<b>จำนวนการเข้าชมในวันนี้:</b> {today_views} ครั้ง"
             views_para = Paragraph(views_text, thai_style)
@@ -4507,7 +4545,7 @@ def generate_pdf_report():
                 leading=28,
                 alignment=TA_CENTER,
                 spaceAfter=10,
-                textColor=colors.HexColor('#1E40AF')  # Dark blue color
+                textColor=colors.HexColor('#2463EB')  # Dark blue color
             )
             
             # Add subtitle with date
@@ -4607,8 +4645,8 @@ def generate_pdf_report():
             # Define table style with Thai fonts and proper text wrapping
             table_style = TableStyle([
                 # Header row
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E40AF')),  # Dark blue header
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2463EB')),  # Dark blue header
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # White text for header row only
                 ('FONTNAME', (0, 0), (-1, 0), 'NotoSansThai-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 9),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
