@@ -85,11 +85,9 @@
                 <!-- Feature Dropdown -->
                 <div class="flex-1 min-w-[120px]" x-data="dropdown({options: [
                     {id: '', name: 'ค้นหาลักษณะบ้าน'}, 
-                    {id: '1', name: '1 ห้องนอน'}, 
                     {id: '2', name: '2 ห้องนอน'}, 
                     {id: '3', name: '3 ห้องนอน'}, 
                     {id: '4', name: '4 ห้องนอน'}, 
-                    {id: '5', name: '5+ ห้องนอน'}
                 ], selected: '{{ request.args.get('bedrooms', '') }}', name: 'bedrooms'})">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
                     <div class="relative">

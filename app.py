@@ -1,50 +1,60 @@
 import sys
+import os
 import time
 import re
 import locale
 import io
 import traceback
-from datetime import datetime
+from datetime import datetime, date, timedelta
+from dotenv import load_dotenv
 
 # Set the locale to handle Thai characters
 locale.setlocale(locale.LC_ALL, 'th_TH.UTF-8')
 
-# Set default encoding to UTF-8
+# Set default encoding to UTF-8 for console output
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-sys.stdout.reconfigure(encoding='utf-8')  # Prevents encoding errors in Windows console output
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, send_file, send_from_directory, abort, Response
+sys.stdout.reconfigure(encoding='utf-8') 
+
+from flask import (
+    Flask, 
+    render_template, 
+    request, 
+    redirect, 
+    url_for, 
+    flash, 
+    session, 
+    jsonify, 
+    make_response, 
+    send_file, 
+    send_from_directory, 
+    abort, 
+    Response
+)
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
+from wtforms import StringField, PasswordField, validators
 from werkzeug.security import generate_password_hash, check_password_hash
-import io
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from werkzeug.utils import secure_filename
-from io import BytesIO 
-from xhtml2pdf import pisa
-import os
-import matplotlib.pyplot as plt
-import tempfile
-from datetime import datetime, date, timedelta
-import uuid
-from flask import g
 from fpdf import FPDF, HTMLMixin
-from flask import make_response
+from io import BytesIO
 import json
-from cbir_search import search_similar_images
+import uuid
+import urllib.parse
 import matplotlib
-import pdfkit
-import urllib.parse 
-matplotlib.use('Agg')
+matplotlib.use('Agg') # Use the 'Agg' backend for Matplotlib
 
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+# --- Load Environment Variables and Configure Flask App ---
+
+# Load environment variables from a .env file
+load_dotenv()
+print(f"DEBUG: SECRET_KEY from .env: {os.getenv('SECRET_KEY')}")
 # Custom JSON encoder to handle datetime objects
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -53,36 +63,114 @@ class CustomJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 app = Flask(__name__)
-app.debug = True  # Add this line
-app.config['DEBUG'] = True  # And this line
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Replace with a secure secret key in production
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Session expires after 1 day
+
+# Core Flask Configuration
+app.debug = True
+app.config['DEBUG'] = True
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
+
+# Session configuration
+app.config.update(
+    SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=2),
+    SESSION_REFRESH_EACH_REQUEST=True,
+    REMEMBER_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+    REMEMBER_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_SAMESITE='Lax'
+)
 app.json_encoder = CustomJSONEncoder
 
-# Configure pdfkit
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'กรุณาเข้าสู่ระบบเพื่อเข้าถึงหน้านี้'
+login_manager.login_message_category = 'error'
+
+# Flask-WTF CSRF Protection
+csrf = CSRFProtect(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    print(f"\n=== Loading user with ID: {user_id} ===")
+    print(f"Session data in load_user: {dict(session)}")
+    
+    if not user_id or not user_id.isdigit():
+        print(f"Invalid user_id: {user_id}")
+        return None
+        
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # First check if user exists and is active
+        cur.execute("""
+            SELECT id, username, password, email, first_name, last_name, role, status, created_at 
+            FROM admins 
+            WHERE id = %s AND status = 'active'
+        """, (int(user_id),))
+        
+        admin = cur.fetchone()
+        
+        if not admin:
+            print(f"No active admin found with id: {user_id}")
+            return None
+            
+        # Create user object with all required fields
+        user = admins(
+            id=admin['id'],
+            username=admin['username'],
+            password=admin['password'],
+            email=admin.get('email', ''),
+            first_name=admin.get('first_name', ''),
+            last_name=admin.get('last_name', ''),
+            role=admin.get('role', 'admin'),
+            status=admin.get('status', 'active'),
+            created_at=admin.get('created_at')
+        )
+        
+        # Verify the user object has the required attributes
+        print(f"User object created - ID: {user.id}, Username: {user.username}")
+        print(f"User is_authenticated: {user.is_authenticated}")
+        print(f"User is_active: {user.is_active}")
+        print(f"User is_anonymous: {user.is_anonymous}")
+        
+        return user
+        
+    except Exception as e:
+        print(f"Error in load_user: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return None
+    finally:
+        cur.close()
+
+# MySQL Configuration
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'projectdb')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3307))
+
+mysql = MySQL(app)
+
+# --- PDFKit and Font Configuration ---
+
 def setup_thai_font():
     """
     Configures xhtml2pdf to use a local font that supports Thai characters.
-    
-    This function searches for a suitable font file on the system and, if found,
-    registers it with the pisa library. This is a more robust solution than
-    relying on an external URL for the font, which can fail in server environments.
     """
     try:
         # A list of common fonts that support Thai characters on Windows systems
         thai_fonts = ['THSarabunNew.ttf', 'THSarabun.ttf', 'THSarabunNew Bold.ttf', 'THSarabun Bold.ttf']
         font_found = False
         
-        # Search for the font in common Windows font directories
         for font_name in thai_fonts:
             font_path = None
             if sys.platform.startswith('win'):
-                # Common font paths for Windows
                 font_dirs = [
-                    os.path.join(os.environ['WINDIR'], 'Fonts'),
-                    os.path.join(os.environ['LOCALAPPDATA'], 'Microsoft', 'Windows', 'Fonts')
+                    os.path.join(os.environ.get('WINDIR', ''), 'Fonts'),
+                    os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Microsoft', 'Windows', 'Fonts')
                 ]
                 for font_dir in font_dirs:
                     full_path = os.path.join(font_dir, font_name)
@@ -92,16 +180,13 @@ def setup_thai_font():
             
             if font_path:
                 print(f"Found Thai font at: {font_path}")
-                # Register the font with pisa
                 from xhtml2pdf.default import DEFAULT_FONT
                 from reportlab.pdfbase.ttfonts import TTFont
                 from reportlab.pdfbase import pdfmetrics
                 
                 try:
-                    # Register the font with ReportLab
                     pdfmetrics.registerFont(TTFont('ThaiFont', font_path))
                     
-                    # Update xhtml2pdf's default font settings
                     if 'ThaiFont' not in DEFAULT_FONT:
                         DEFAULT_FONT['ThaiFont'] = DEFAULT_FONT['helvetica'].copy()
                         DEFAULT_FONT['ThaiFont']['helvetica'] = 'ThaiFont'
@@ -117,15 +202,12 @@ def setup_thai_font():
         
         if not font_found:
             print("Warning: No suitable Thai font found on the system. PDF may not display Thai characters correctly.")
-            
-            # Try to use a fallback font that might be available
             try:
-                from reportlab.pdfbase import pdfmetrics
-                from reportlab.pdfbase.ttfonts import TTFont
-                
-                # Try to use Arial Unicode MS if available (common on Windows)
-                arial_unicode_path = os.path.join(os.environ['WINDIR'], 'Fonts', 'ARIALUNI.TTF')
+                arial_unicode_path = os.path.join(os.environ.get('WINDIR', ''), 'Fonts', 'ARIALUNI.TTF')
                 if os.path.exists(arial_unicode_path):
+                    from xhtml2pdf.default import DEFAULT_FONT
+                    from reportlab.pdfbase import pdfmetrics
+                    from reportlab.pdfbase.ttfonts import TTFont
                     pdfmetrics.registerFont(TTFont('ArialUnicode', arial_unicode_path))
                     DEFAULT_FONT['ArialUnicode'] = DEFAULT_FONT['helvetica'].copy()
                     DEFAULT_FONT['ArialUnicode']['helvetica'] = 'ArialUnicode'
@@ -142,7 +224,7 @@ def setup_thai_font():
 setup_thai_font()
 
 app.config['PDFKIT_OPTIONS'] = {
-    'enable-local-file-access': None,  # Required for loading local files
+    'enable-local-file-access': None,
     'encoding': 'UTF-8',
     'page-size': 'A4',
     'margin-top': '15mm',
@@ -151,41 +233,16 @@ app.config['PDFKIT_OPTIONS'] = {
     'margin-left': '10mm'
 }
 
-# Set the path to wkhtmltopdf if it's not in your PATH
-# On Windows, it might look like this:
-# path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-# config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-# Then use: pdfkit.from_string(html, False, configuration=config, options=app.config['PDFKIT_OPTIONS'])
-app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-# Configure upload paths with absolute paths
+# --- File System Configuration ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 IMG_FOLDER = os.path.join(BASE_DIR, 'static', 'img')
 
-# Ensure upload directories exist with proper permissions
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(IMG_FOLDER, exist_ok=True)
 
-# Set folder permissions (Windows compatible)
-try:
-    import stat
-    os.chmod(UPLOAD_FOLDER, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    os.chmod(IMG_FOLDER, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-except Exception as e:
-    print(f"Warning: Could not set folder permissions: {e}")
-
-# Configure upload folders with absolute paths
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['IMG_FOLDER'] = IMG_FOLDER
-
-print(f"Upload folder: {UPLOAD_FOLDER}")
-print(f"Image folder: {IMG_FOLDER}")
-print(f"Current working directory: {os.getcwd()}")
-print(f"Upload folder exists: {os.path.exists(UPLOAD_FOLDER)}")
-print(f"Upload folder is writable: {os.access(UPLOAD_FOLDER, os.W_OK)}")
 
 # Ensure all HTML responses are UTF-8
 @app.after_request
@@ -193,89 +250,49 @@ def set_charset(response):
     response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
 
-# MySQL Configuration
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'projectdb'
-app.config['MYSQL_PORT'] = 3307
+# --- Helper Functions ---
+def serialize_data_for_json(data):
+    """Helper function to serialize data for JSON responses"""
+    if data is None:
+        return None
+    if isinstance(data, (str, int, float, bool)) or data is None:
+        return data
+    if isinstance(data, dict):
+        return {k: serialize_data_for_json(v) for k, v in data.items()}
+    if isinstance(data, (list, tuple)):
+        return [serialize_data_for_json(item) for item in data]
+    if hasattr(data, '__dict__'):
+        return serialize_data_for_json(data.__dict__)
+    if hasattr(data, 'isoformat'):  # Handle datetime objects
+        return data.isoformat()
+    return str(data)  # Fallback to string representation
 
-mysql = MySQL(app)
-csrf = CSRFProtect(app)
-
-
-# Helper function to convert data to dictionary list for easier processing
 def is_super_admin():
-    return session.get('admin_role') == 'superadmin'
+    return current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'superadmin'
 
 def dict_fetchall(cursor):
-    """Returns all rows from a cursor as a list of dictionaries."""
     desc = cursor.description
     return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
 
 def dict_fetchone(cursor):
-    """Returns one row from a cursor as a dictionary."""
     desc = cursor.description
     data = cursor.fetchone()
     if data:
         return dict(zip([col[0] for col in desc], data))
     return None
 
-def serialize_data_for_json(data):
-    # Ensure dates/datetimes are properly formatted for JSON
-    if isinstance(data, list):
-        for item in data:
-            for key, value in item.items():
-                if isinstance(value, (datetime, date)):
-                    item[key] = value.isoformat()
-    return data
-
-# --- Corrected get_project_data helper function ---
 def get_project_data(project_id):
-    """Fetches a single project's data from the database."""
-    print(f"\n=== DEBUG: get_project_data called with project_id: {project_id} (type: {type(project_id)}) ===")
-    
-    if not project_id:
-        print("ERROR: project_id is empty or None")
-        return None
-        
     cur = None
     try:
-        # Get database connection info for debugging
-        print(f"DEBUG: MySQL Connection Info: {mysql.connection.get_host_info()}")
-        print(f"DEBUG: MySQL Server Version: {mysql.connection.get_server_info()}")
-        
-        # Create a new cursor with DictCursor
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
-        # Get the project data with all fields
-        query = """
-            SELECT 
-                p_id, 
-                p_name, 
-                description,
-                a_id,
-                address,
-                p_image,
-                created_at,
-                updated_at
-            FROM project 
-            WHERE p_id = %s
-        """
-        print(f"DEBUG: Executing query: {query} with params: ({project_id},)")
-        
+        query = "SELECT p_id, p_name, description, a_id, address, p_image, created_at, updated_at FROM project WHERE p_id = %s"
         cur.execute(query, (project_id,))
         project_data = cur.fetchone()
         
         if project_data:
-            print(f"DEBUG: Found project: {project_data['p_name']} (ID: {project_data['p_id']})")
-            # Ensure all fields are present in the result
             project_data['p_image'] = project_data.get('p_image', 'default_project.jpg')
             project_data['address'] = project_data.get('address', '')
             project_data['description'] = project_data.get('description', '')
-        else:
-            print(f"DEBUG: No project found with ID: {project_id}")
-        
         return project_data
         
     except Exception as e:
@@ -287,7 +304,7 @@ def get_project_data(project_id):
             cur.close()
 
 # Admin model
-class admins:
+class admins(UserMixin):
     def __init__(self, id, username, password, email, first_name, last_name, role, status, created_at):
         self.id = id
         self.username = username
@@ -298,222 +315,116 @@ class admins:
         self.role = role
         self.status = status
         self.created_at = created_at
+        
+    def get_id(self):
+        return str(self.id)
+        
+    @property
+    def is_active(self):
+        return self.status == 'active'
+        
+    @property
+    def is_authenticated(self):
+        return True
+        
+    @property
+    def is_anonymous(self):
+        return False
 
-# Routes
+class LoginForm(FlaskForm):
+    username = StringField('Username', [validators.InputRequired()])
+    password = PasswordField('Password', [validators.InputRequired()])
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("\n=== DEBUG: Entering login route ===")
-    print(f"DEBUG: Request method: {request.method}")
-    # Safely print session data with proper encoding
-    try:
-        session_data = {k: v for k, v in session.items()}
-        print("DEBUG: Session data (before):", session_data)
-    except Exception as e:
-        print(f"DEBUG: Could not print session data: {str(e)}")
+    print("\n=== Login Route Start ===")
+    print(f"Current user: {current_user}")
+    print(f"Is authenticated: {current_user.is_authenticated}")
+    print(f"Session: {dict(session)}")
     
-    if request.method == 'POST':
-        if request.is_json:
-            # Handle AJAX login with JSON body
-            data = request.get_json()
-            username = data.get('username')
-            password = data.get('password')
-            print(f"DEBUG: AJAX login attempt for username: {username}")
-
-            if not username or not password:
-                print("DEBUG: Missing username or password in AJAX request")
-                return jsonify({
-                    'success': False,
-                    'message': 'Username and password are required'
-                }), 400
-
-            cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            try:
-                print(f"DEBUG: Querying database for username: {username}")
-                cur.execute("SELECT * FROM admins WHERE username = %s", (username,))
-                admin = cur.fetchone()
-                
-                if not admin:
-                    print(f"DEBUG: No admin found with username: {username}")
-                    return jsonify({
-                        'success': False,
-                        'message': 'Invalid username or password'
-                    }), 401
-                    
-                print(f"DEBUG: Found admin record: {admin}")
-                
-                if check_password_hash(admin['password'], password):
-                    print("DEBUG: Password verification successful")
-                    
-                    # Debug admin data structure
-                    print(f"DEBUG: Admin data: {admin}")
-                    print(f"DEBUG: Admin status: {admin.get('status', 'Status not found')}")
-                    
-                    # Check if account is active
-                    if admin.get('status') != 'active':
-                        print(f"DEBUG: Login blocked - Inactive account: {username}")
-                        return jsonify({
-                            'success': False,
-                            'message': 'บัญชีนี้ไม่ได้ใช้งานอยู่ กรุณาติดต่อผู้ดูแลระบบ'
-                        }), 403
-                    if 'status' not in admin:
-                        print(f"WARNING: Admin record missing status field for user: {username}")
-                    
-                    # Set session data
-                    session.clear()  # Clear any existing session data
-                    session['admin_id'] = admin['id']
-                    session['admin_username'] = admin['username']
-                    session['admin_role'] = admin.get('role', 'admin')  # Default to 'admin' if not set
-                    
-                    print(f"DEBUG: Session data set - admin_id: {session.get('admin_id')}, admin_username: {session.get('admin_username')}, admin_role: {session.get('admin_role')}")
-                    print(f"DEBUG: Session data (after): {dict(session)}")
-                    
-                    return jsonify({
-                        'success': True,
-                        'redirect': url_for('admin_dashboard')
-                    })
-                else:
-                    print("DEBUG: Invalid password")
-                    return jsonify({
-                        'success': False,
-                        'message': 'Invalid username or password'
-                    }), 401
-                    
-            except Exception as e:
-                print(f"ERROR during login: {str(e)}")
-                import traceback
-                print(traceback.format_exc())
-                return jsonify({
-                    'success': False,
-                    'message': 'An error occurred during login'
-                }), 500
-                
-            finally:
-                cur.close()
-
-        # Handle standard form submissions
-        if 'login_submit' in request.form:
-            username = request.form.get('username')
-            password = request.form.get('password')
-            print("\n=== DEBUG: Standard form login attempt ===")
-            print(f"DEBUG: Username: {username}")
-            print(f"DEBUG: CSRF Token: {request.form.get('csrf_token')}")
-            print(f"DEBUG: Form data: {request.form}")
-
-            if not username or not password:
-                print("DEBUG: Missing username or password in form submission")
-                flash('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'error')
-                return redirect(url_for('login'))
-
-            cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            try:
-                print(f"DEBUG: Querying database for username: {username}")
-                cur.execute("SELECT * FROM admins WHERE username = %s", (username,))
-                admin = cur.fetchone()
-                
-                if not admin:
-                    print(f"DEBUG: No admin found with username: {username}")
-                    flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error')
-                    return redirect(url_for('login'))
-                
-                print(f"DEBUG: Found admin record: {admin}")
-                
-                if check_password_hash(admin['password'], password):
-                    print("DEBUG: Password verification successful")
-                    
-                    # Debug admin data structure
-                    print(f"DEBUG: Admin data: {admin}")
-                    print(f"DEBUG: Admin status: {admin.get('status', 'Status not found')}")
-                    
-                    # Check if account is active
-                    if admin.get('status') != 'active':
-                        print(f"DEBUG: Login blocked - Inactive account: {username}")
-                        flash('บัญชีนี้ไม่ได้ใช้งานอยู่ กรุณาติดต่อผู้ดูแลระบบ', 'error')
-                        return redirect(url_for('login'))
-                    if 'status' not in admin:
-                        print(f"WARNING: Admin record missing status field for user: {username}")
-                    
-                    # Set session data
-                    session.clear()  # Clear any existing session data
-                    session['admin_id'] = admin['id']
-                    session['admin_username'] = admin['username']
-                    session['admin_role'] = admin.get('role', 'admin')  # Default to 'admin' if not set
-                    
-                    print(f"DEBUG: Session data set - admin_id: {session.get('admin_id')}")
-                    print(f"DEBUG: Session data (after): {dict(session)}")
-                    
-                    # Verify session was actually set
-                    if 'admin_id' not in session:
-                        print("CRITICAL ERROR: Failed to set session data!")
-                        flash('เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองอีกครั้ง', 'error')
-                        return redirect(url_for('login'))
-                    
-                    print(f"DEBUG: Login successful, redirecting to admin dashboard")
-                    flash('เข้าสู่ระบบสำเร็จ!', 'success')
-                    return redirect(url_for('admin_dashboard'))
-                else:
-                    print("DEBUG: Invalid password")
-                    flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error')
-                    return redirect(url_for('login'))
-                    
-            except Exception as e:
-                print(f"ERROR during login: {str(e)}")
-                import traceback
-                print(traceback.format_exc())
-                flash('เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองอีกครั้ง', 'error')
-                return redirect(url_for('login'))
-                
-            finally:
-                cur.close()
-
-        elif 'register_submit' in request.form:
-            username = request.form.get('username')
-            password = request.form.get('password')
-            email = request.form.get('email')
-            first_name = request.form.get('first_name')
-            last_name = request.form.get('last_name')
-
-            cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    if current_user.is_authenticated:
+        print("User already authenticated, redirecting to admin dashboard")
+        return redirect(url_for('admin_dashboard'))
+        
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        print(f"\nLogin attempt for user: {username}")
+        
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        try:
             cur.execute("SELECT * FROM admins WHERE username = %s", (username,))
-            existing_user = cur.fetchone()
+            admin = cur.fetchone()
+            print(f"Database query result: {admin}")
 
-            if existing_user:
-                flash('Username already exists', 'error')
-                cur.close()
-                return redirect(url_for('login'))
+            if not admin or not check_password_hash(admin['password'], password):
+                print("Invalid username or password")
+                flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error')
+                return render_template('login.html', form=form), 401
 
-            cur.execute("SELECT * FROM admins WHERE email = %s", (email,))
-            existing_email = cur.fetchone()
+            if admin.get('status') != 'active':
+                print(f"Account not active. Status: {admin.get('status')}")
+                flash('บัญชีนี้ไม่ได้ใช้งานอยู่ กรุณาติดต่อผู้ดูแลระบบ', 'error')
+                return redirect(url_for('login')), 403
 
-            if existing_email:
-                flash('Email already exists', 'error')
-                cur.close()
-                return redirect(url_for('login'))
-
-                cur.execute("""
-                    INSERT INTO admins (username, password, email, first_name, last_name, role, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    username,
-                    generate_password_hash(password),
-                    email,
-                    first_name,
-                    last_name,
-                    'admin',
-                    'active'
-                ))
-                mysql.connection.commit()
-            cur.close()
-            flash('Registration successful! Please login.', 'success')
-            return redirect(url_for('login'))
+            # Clear any existing session data
+            session.clear()
+            print("Cleared existing session data")
             
-    return render_template('login.html')
+            # Create user object
+            user = admins(
+                id=admin['id'],
+                username=admin['username'],
+                password=admin['password'],
+                email=admin.get('email', ''),
+                first_name=admin.get('first_name', ''),
+                last_name=admin.get('last_name', ''),
+                role=admin.get('role', 'admin'),
+                status=admin.get('status', 'active'),
+                created_at=admin.get('created_at')
+            )
+            print(f"Created user object: {user}")
+            
+            # Log the user in
+            login_user(user, remember=True)
+            print(f"User logged in. Session after login: {dict(session)}")
+            
+            # Set session as permanent
+            session.permanent = True
+            
+            flash('เข้าสู่ระบบสำเร็จ!', 'success')
+            next_page = request.args.get('next')
+            print(f"Login successful. Redirecting to: {next_page or 'admin_dashboard'}")
+            return redirect(next_page or url_for('admin_dashboard'))
+
+        except Exception as e:
+            print(f"ERROR during login: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            flash('เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองอีกครั้ง', 'error')
+            return render_template('login.html', form=form), 500
+        finally:
+            cur.close()
+    
+    # For GET requests or invalid form
+    return render_template('login.html', form=form)
+
 
 @app.route('/admin/dashboard', methods=['GET', 'POST'])
+@login_required
 def admin_dashboard():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
-
+    print("\n=== Admin Dashboard Route Start ===")
+    print(f"Current user: {current_user}")
+    print(f"Is authenticated: {current_user.is_authenticated}")
+    print(f"Session data: {dict(session)}")
+    
+    # Ensure user is authenticated
+    if not current_user.is_authenticated:
+        print("User not authenticated, redirecting to login")
+        return redirect(url_for('login', next=request.url))
+        
     cur = mysql.connection.cursor()
 
     # Initialize all data variables to empty lists to ensure they are always defined and JSON serializable
@@ -1429,10 +1340,10 @@ def dashboard_pdf():
                 print(f"Warning: Could not remove temporary file {img}: {str(e)}")
 
 @app.route('/logout')
+@login_required
 def logout():
-    session.pop('admin_id', None)
-    session.pop('admin_username', None)
-    flash('You have been logged out.', 'success')
+    logout_user()
+    flash('คุณได้ออกจากระบบเรียบร้อยแล้ว', 'success')
     return redirect(url_for('login'))
 
 @app.route('/admin/houses')
