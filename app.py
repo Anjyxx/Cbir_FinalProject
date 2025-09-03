@@ -195,52 +195,33 @@ def set_charset(response):
 
 # Database Configuration
 import os
-from urllib.parse import urlparse
 
-# Check if we're running on Railway with PostgreSQL
-if 'DATABASE_URL' in os.environ:
-    # Parse the DATABASE_URL environment variable
-    db_url = urlparse(os.environ['DATABASE_URL'])
-    
-    # Configure PostgreSQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # For MySQL compatibility in code
-    app.config['MYSQL_HOST'] = db_url.hostname
-    app.config['MYSQL_USER'] = db_url.username
-    app.config['MYSQL_PASSWORD'] = db_url.password
-    app.config['MYSQL_DB'] = db_url.path[1:]  # Remove the leading '/'
-    
-    # Initialize SQLAlchemy for PostgreSQL
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy(app)
-    
-    # For backward compatibility
-    class MySQL:
-        def __init__(self, app):
-            self.connection = db.engine.connect()
-            
-        def get_db(self):
-            return self.connection
-            
-    mysql = MySQL(app)
-    
-    # Create tables if they don't exist
-    @app.before_first_request
-    def create_tables():
-        db.create_all()
-        
-else:
-    # Local MySQL configuration
-    app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
-    app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-    app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
-    app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'housing_db')
-    app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
-    
-    # Initialize MySQL
-    mysql = MySQL(app)
+# MySQL Configuration for both local and Railway
+app.config['MYSQL_HOST'] = os.getenv('MYSQLHOST', 'localhost')
+app.config['MYSQL_USER'] = os.getenv('MYSQLUSER', 'root')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQLPASSWORD', '')
+app.config['MYSQL_DB'] = os.getenv('MYSQLDATABASE', 'projectdb')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQLPORT', '3307'))
+app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+
+# For Railway's connection pooling
+app.config['MYSQL_POOL_NAME'] = 'railway_pool'
+app.config['MYSQL_POOL_SIZE'] = 5
+app.config['MYSQL_AUTOCOMMIT'] = True
+app.config['MYSQL_POOL_RECYCLE'] = 300
+
+# Initialize MySQL
+mysql = MySQL(app)
+
+# Test database connection on startup
+try:
+    with mysql.connection.cursor() as cursor:
+        cursor.execute('SELECT 1')
+        print("✅ Successfully connected to MySQL database")
+except Exception as e:
+    print(f"❌ Error connecting to MySQL database: {e}")
+    print("Please check your database configuration in environment variables")
+    print("Required environment variables: MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE, MYSQLPORT")
 csrf = CSRFProtect(app)
 
 
