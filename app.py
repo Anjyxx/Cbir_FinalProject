@@ -193,35 +193,14 @@ def set_charset(response):
     response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
 
-# Database Configuration
-import os
+# MySQL Configuration
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_DB'] = 'projectdb'
+app.config['MYSQL_PORT'] = 3307
 
-# MySQL Configuration for both local and Railway
-app.config['MYSQL_HOST'] = os.getenv('MYSQLHOST', 'localhost')
-app.config['MYSQL_USER'] = os.getenv('MYSQLUSER', 'root')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQLPASSWORD', '')
-app.config['MYSQL_DB'] = os.getenv('MYSQLDATABASE', 'projectdb')
-app.config['MYSQL_PORT'] = int(os.getenv('MYSQLPORT', '3307'))
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
-
-# For Railway's connection pooling
-app.config['MYSQL_POOL_NAME'] = 'railway_pool'
-app.config['MYSQL_POOL_SIZE'] = 5
-app.config['MYSQL_AUTOCOMMIT'] = True
-app.config['MYSQL_POOL_RECYCLE'] = 300
-
-# Initialize MySQL
 mysql = MySQL(app)
-
-# Test database connection on startup
-try:
-    with mysql.connection.cursor() as cursor:
-        cursor.execute('SELECT 1')
-        print("✅ Successfully connected to MySQL database")
-except Exception as e:
-    print(f"❌ Error connecting to MySQL database: {e}")
-    print("Please check your database configuration in environment variables")
-    print("Required environment variables: MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE, MYSQLPORT")
 csrf = CSRFProtect(app)
 
 
