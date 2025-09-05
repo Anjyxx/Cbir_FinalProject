@@ -49,6 +49,7 @@ import matplotlib
 matplotlib.use('Agg') # Use the 'Agg' backend for Matplotlib
 
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from functools import wraps
 
 # --- Load Environment Variables and Configure Flask App ---
 
@@ -86,6 +87,19 @@ app.json_encoder = CustomJSONEncoder
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+def admin_required(f):
+    """Decorator to ensure the user is logged in as an admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+        if 'admin_id' not in session:
+            logout_user()
+            flash('กรุณาเข้าสู่ระบบเพื่อเข้าถึงหน้านี้', 'error')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
 login_manager.login_message = 'กรุณาเข้าสู่ระบบเพื่อเข้าถึงหน้านี้'
 login_manager.login_message_category = 'error'
 
@@ -337,14 +351,12 @@ class LoginForm(FlaskForm):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("\n=== Login Route Start ===")
-    print(f"Current user: {current_user}")
-    print(f"Is authenticated: {current_user.is_authenticated}")
-    print(f"Session: {dict(session)}")
-    
+    # If already logged in, redirect to dashboard
     if current_user.is_authenticated:
-        print("User already authenticated, redirecting to admin dashboard")
         return redirect(url_for('admin_dashboard'))
+        
+    # Clear any existing session data
+    session.clear()
         
     form = LoginForm()
     
@@ -360,43 +372,46 @@ def login():
             print(f"Database query result: {admin}")
 
             if not admin or not check_password_hash(admin['password'], password):
-                print("Invalid username or password")
                 flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error')
                 return render_template('login.html', form=form), 401
 
             if admin.get('status') != 'active':
-                print(f"Account not active. Status: {admin.get('status')}")
                 flash('บัญชีนี้ไม่ได้ใช้งานอยู่ กรุณาติดต่อผู้ดูแลระบบ', 'error')
                 return redirect(url_for('login')), 403
 
             # Clear any existing session data
             session.clear()
-            print("Cleared existing session data")
             
             # Create user object
             user = admins(
                 id=admin['id'],
                 username=admin['username'],
                 password=admin['password'],
-                email=admin.get('email', ''),
-                first_name=admin.get('first_name', ''),
-                last_name=admin.get('last_name', ''),
-                role=admin.get('role', 'admin'),
-                status=admin.get('status', 'active'),
-                created_at=admin.get('created_at')
+                email=admin['email'],
+                first_name=admin['first_name'],
+                last_name=admin['last_name'],
+                role=admin['role'],
+                status=admin['status'],
+                created_at=admin['created_at']
             )
-            print(f"Created user object: {user}")
             
             # Log the user in
             login_user(user, remember=True)
-            print(f"User logged in. Session after login: {dict(session)}")
             
-            # Set session as permanent
+            # Set session variables
             session.permanent = True
+            session['admin_id'] = admin['id']
+            session['username'] = admin['username']
+            session['role'] = admin['role']
+            
+            # Regenerate session to prevent session fixation
+            session.modified = True
             
             flash('เข้าสู่ระบบสำเร็จ!', 'success')
+            print(f"User {admin['username']} logged in successfully")
+            print(f"Session after login: {dict(session)}")
+            
             next_page = request.args.get('next')
-            print(f"Login successful. Redirecting to: {next_page or 'admin_dashboard'}")
             return redirect(next_page or url_for('admin_dashboard'))
 
         except Exception as e:
@@ -412,18 +427,14 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/admin/dashboard', methods=['GET', 'POST'])
+@app.route('/admin/dashboard')
 @login_required
+@admin_required
 def admin_dashboard():
     print("\n=== Admin Dashboard Route Start ===")
     print(f"Current user: {current_user}")
     print(f"Is authenticated: {current_user.is_authenticated}")
     print(f"Session data: {dict(session)}")
-    
-    # Ensure user is authenticated
-    if not current_user.is_authenticated:
-        print("User not authenticated, redirecting to login")
-        return redirect(url_for('login', next=request.url))
         
     cur = mysql.connection.cursor()
 
@@ -1342,15 +1353,25 @@ def dashboard_pdf():
 @app.route('/logout')
 @login_required
 def logout():
+    # Store a copy of the username for the flash message
+    username = current_user.username if current_user.is_authenticated else 'User'
+    
+    # Log the user out
     logout_user()
-    flash('คุณได้ออกจากระบบเรียบร้อยแล้ว', 'success')
+    
+    # Clear the session completely
+    session.clear()
+    
+    # Clear any remaining session data
+    session.modified = True
+    
+    flash(f'{username} ได้ออกจากระบบเรียบร้อยแล้ว', 'success')
     return redirect(url_for('login'))
 
 @app.route('/admin/houses')
+@login_required
+@admin_required
 def admin_houses():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
     try:
@@ -1476,11 +1497,10 @@ def admin_houses():
         cur.close()
 
 @app.route('/admin/add-house', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_add_house():
     # Check if admin is logged in
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
     
@@ -1588,10 +1608,9 @@ def admin_add_house():
         cur.close()
 
 @app.route('/admin/edit-house/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_edit_house(id):
-    if 'admin_id' not in session:
-        flash('Please log in to access this page.', 'error')
-        return redirect(url_for('login'))
 
     cur = mysql.connection.cursor()
 
@@ -1698,10 +1717,9 @@ def admin_edit_house(id):
 # --- AJAX routes for image management ---
 # Route to delete an image
 @app.route('/admin/houses/delete/<int:id>', methods=['POST'])
+@login_required
+@admin_required
 def admin_delete_house(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
         
     cur = mysql.connection.cursor()
     try:
@@ -1748,9 +1766,9 @@ def admin_delete_house(id):
     return redirect(url_for('admin_houses'))
 
 @app.route('/admin/delete-house-image/<int:house_id>/<int:image_id>', methods=['POST'])
+@login_required
+@admin_required
 def delete_house_image(house_id, image_id):
-    if 'admin_id' not in session:
-        return jsonify({'success': False, 'message': 'Authentication required.'})
     
     cur = mysql.connection.cursor()
     try:
@@ -1794,9 +1812,9 @@ def delete_house_image(house_id, image_id):
 
 # Route to set a new main image
 @app.route('/admin/set-main-image/<int:house_id>/<int:image_id>', methods=['POST'])
+@login_required
+@admin_required
 def set_main_image(house_id, image_id):
-    if 'admin_id' not in session:
-        return jsonify({'success': False, 'message': 'Authentication required.'})
 
     cur = mysql.connection.cursor()
     try:
@@ -1815,10 +1833,9 @@ def set_main_image(house_id, image_id):
         cur.close()
 
 @app.route('/admin/house-type/delete/<int:id>', methods=['POST'])
+@login_required
+@admin_required
 def admin_delete_house_type(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
         
     cur = mysql.connection.cursor()
     try:
@@ -1844,10 +1861,9 @@ def admin_delete_house_type(id):
 
 
 @app.route('/admin/projects')
+@login_required
+@admin_required
 def admin_projects():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
         
     search = request.args.get('search', '').strip()
     
@@ -1952,10 +1968,9 @@ def admin_projects():
 
 # --- Corrected admin_add_project route ---
 @app.route('/admin/projects/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_add_project():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
         
     if request.method == 'POST':
         p_name = request.form.get('p_name')
@@ -2004,6 +2019,8 @@ def admin_add_project():
 
 # --- Corrected admin_edit_project route ---
 @app.route('/admin/projects/edit/<project_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_edit_project(project_id):
     print(f"\n=== DEBUG: admin_edit_project called with project_id: {project_id} (type: {type(project_id)}) ===")
     
@@ -2139,10 +2156,9 @@ def admin_edit_project(project_id):
 
 # --- Corrected admin_delete_project route ---
 @app.route('/admin/projects/delete/<project_id>', methods=['POST'])
+@login_required
+@admin_required
 def admin_delete_project(project_id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
         
     # Convert project_id to string to match database type
     project_id_str = str(project_id)
@@ -2196,10 +2212,9 @@ def admin_delete_project(project_id):
     return redirect(url_for('admin_projects'))
 
 @app.route('/admin/house-types', methods=['GET'])
+@login_required
+@admin_required
 def admin_house_types():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     search = request.args.get('search', '').strip()
     cur = mysql.connection.cursor()
@@ -2220,10 +2235,9 @@ def admin_house_types():
     return render_template('admin_house_types.html', house_types=type_list)
 
 @app.route('/admin/house-types/new', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_add_house_type():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
 
     if request.method == 'POST':
         t_name = request.form.get('t_name')
@@ -2257,10 +2271,9 @@ def admin_add_house_type():
     return render_template('admin_add_house_type.html')
 
 @app.route('/admin/house-types/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_edit_house_type(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
 
@@ -2358,10 +2371,9 @@ def admin_edit_house_type(id):
         cur.close() if 'cur' in locals() else None
 
 @app.route('/admin/house-features', methods=['GET']) 
+@login_required
+@admin_required
 def admin_house_features():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     search = request.args.get('search', '').strip()
     cur = mysql.connection.cursor()
@@ -2382,10 +2394,9 @@ def admin_house_features():
     return render_template('admin_house_features.html', features=features)
 
 @app.route('/admin/add-house-feature', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_add_house_feature():
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
     if request.method == 'POST':
@@ -2421,10 +2432,9 @@ def admin_add_house_feature():
     return render_template('admin_add_house_feature.html')
 
 @app.route('/admin/edit-house-feature/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_edit_house_feature(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
 
@@ -2503,10 +2513,9 @@ def admin_edit_house_feature(id):
     return render_template('admin_edit_house_feature.html', feature=feature_data)
 
 @app.route('/admin/delete-house-feature/<int:id>', methods=['POST'])
+@login_required
+@admin_required
 def admin_delete_house_feature(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     cur = mysql.connection.cursor()
     try:
@@ -2732,10 +2741,9 @@ def upload_house_images(house_id):
         return jsonify({'message': 'File type not allowed'}), 400
 
 @app.route('/admin/houses/<int:house_id>/delete-image/<int:image_id>', methods=['POST'])
+@login_required
+@admin_required
 def delete_house_image_route(house_id, image_id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
 
     cur = mysql.connection.cursor()
     try:
@@ -2760,10 +2768,9 @@ def delete_house_image_route(house_id, image_id):
     return redirect(url_for('admin_edit_house', id=house_id))
 
 @app.route('/admin/users')
+@login_required
+@admin_required
 def admin_users():
-    if 'admin_id' not in session:
-        flash('กรุณาเข้าสู่ระบบก่อนดำเนินการ', 'error')
-        return redirect(url_for('login'))
     
     current_user_id = session.get('admin_id')
     is_super_admin = session.get('admin_role') == 'superadmin'
@@ -2868,10 +2875,9 @@ def admin_users():
         cur.close()
 
 @app.route('/admin/users/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_add_user():
-    if 'admin_id' not in session:
-        flash('กรุณาเข้าสู่ระบบก่อนดำเนินการ', 'error')
-        return redirect(url_for('login'))
     
     # Only super admins can add new users
     if session.get('admin_role') != 'superadmin':
@@ -2946,10 +2952,9 @@ def admin_add_user():
                          is_super_admin=True)
 
 @app.route('/admin/users/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def admin_edit_user(id):
-    if 'admin_id' not in session:
-        flash('กรุณาเข้าสู่ระบบก่อนดำเนินการ', 'error')
-        return redirect(url_for('login'))
         
     current_user_id = session.get('admin_id')
     is_super_admin = session.get('admin_role') == 'superadmin'
@@ -3167,10 +3172,9 @@ def debug_db():
         cur.close()
 
 @app.route('/admin/users/delete/<int:id>', methods=['POST'])
+@login_required
+@admin_required
 def admin_delete_user(id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     
     # Only super admins can delete users
     if session.get('admin_role') != 'superadmin':
@@ -3649,10 +3653,9 @@ def houses_list():
     )
 
 @app.route('/admin/houses/<int:house_id>/set-main-image/<int:image_id>', methods=['POST'])
+@login_required
+@admin_required
 def set_main_house_image(house_id, image_id):
-    if 'admin_id' not in session:
-        flash('Please login to access this page', 'error')
-        return redirect(url_for('login'))
     cur = mysql.connection.cursor()
     try:
         # Set all images for this house to is_main=0
@@ -4159,6 +4162,8 @@ def debug_fix_session():
         cur.close()
 
 @app.route('/admin/reports')
+@login_required
+@admin_required
 def admin_reports():
     """
     Renders the main reports dashboard page.
@@ -4167,8 +4172,6 @@ def admin_reports():
     charts, and generate PDF reports. It requires the user to be logged in
     as an administrator.
     """
-    if 'admin_id' not in session:
-        return redirect(url_for('admin_login'))
     
     # Get projects and house types for filters
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -4195,6 +4198,8 @@ def admin_reports():
         cur.close()
 
 @app.route('/admin/reports/pdf')
+@login_required
+@admin_required
 def generate_pdf_report():
     """
     Generates a PDF report of house data based on applied filters.
@@ -4204,7 +4209,7 @@ def generate_pdf_report():
     the HTML content into a PDF document, which is sent as a response.
     """
     if 'admin_id' not in session:
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('login'))
 
     try:
         # Get filter parameters from the request query string
@@ -4700,6 +4705,8 @@ def view_statistics():
         cur.close()
 
 @app.route('/admin/view-stats')
+@login_required
+@admin_required
 def admin_view_stats():
     """
     Renders the view statistics page.
@@ -4714,13 +4721,11 @@ def admin_view_stats():
         print("\n=== Session Debug ===")
         print(f"Session ID: {session.sid if 'sid' in dir(session) else 'N/A'}")
         print(f"Session data: {dict(session)}")
-        print(f"Admin logged in: {'admin_loggedin' in session}")
+        print(f"Admin logged in: {'admin_id' in session}")
         
-        # Check if user is logged in as admin
-        if 'admin_id' not in session or 'admin_username' not in session:
-            print(f"Redirecting to login - Missing admin session data. Current session: {dict(session)}")
-            flash('กรุณาเข้าสู่ระบบในฐานะผู้ดูแลระบบก่อนดูหน้านี้', 'error')
-            return redirect(url_for('login'))
+        # Ensure admin_username is set in session
+        if 'admin_username' not in session and current_user.is_authenticated:
+            session['admin_username'] = current_user.username
         
         # Get filter parameters
         days = request.args.get('days', '30')
@@ -5195,17 +5200,14 @@ def reports_chart_data():
         # Execute houses by bedrooms query
         cur.execute(query_houses_by_bedrooms, tuple(params))
         houses_by_bedrooms = cur.fetchall()
-        print(f"Houses by bedrooms results: {houses_by_bedrooms}")
         
         # Execute houses by bathrooms query
         cur.execute(query_houses_by_bathrooms, tuple(params))
         houses_by_bathrooms = cur.fetchall()
-        print(f"Houses by bathrooms results: {houses_by_bathrooms}")
         
         # Execute houses by living area query
         cur.execute(query_houses_by_area, tuple(params))
         houses_by_living_area = cur.fetchall()
-        print(f"Houses by living area results: {houses_by_living_area}")
         
         # Prepare the response with the data we've already fetched
         response_data = {
@@ -5260,10 +5262,6 @@ def create_house_views_table():
         return "house_views table created successfully!"
     except Exception as e:
         return f"Error creating house_views table: {str(e)}"
-
-@app.route('/test/views')
-def test_views_page():
-    return render_template('test_views.html')
 
 if __name__ == '__main__':
     # Call the font setup function inside the main block
