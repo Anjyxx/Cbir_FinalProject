@@ -51,6 +51,10 @@ matplotlib.use('Agg') # Use the 'Agg' backend for Matplotlib
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from functools import wraps
 
+# Import local modules
+from dotenv import load_dotenv
+from cbir_search import search_similar_images
+
 # --- Load Environment Variables and Configure Flask App ---
 
 # Load environment variables from a .env file
@@ -2584,7 +2588,7 @@ def index():
         # Fetch all projects for the dropdown
         cur.execute("SELECT p_id as id, p_name as name FROM project")
         projects = dict_fetchall(cur)
-
+        
         # Fetch all house features for the dropdown
         cur.execute("SELECT f_id as id, f_name as name FROM house_features")
         house_features = dict_fetchall(cur)
