@@ -83,15 +83,19 @@
                     </div>
                 </div>
                 <!-- Feature Dropdown -->
-                <div class="flex-1 min-w-[120px]" x-data="dropdown({options: [
-                    {id: '', name: 'ค้นหาลักษณะบ้าน'}, 
-                    {id: '2', name: '2 ห้องนอน'}, 
-                    {id: '3', name: '3 ห้องนอน'}, 
-                    {id: '4', name: '4 ห้องนอน'}, 
-                ], selected: '{{ request.args.get('bedrooms', '') }}', name: 'bedrooms'})">
+                <div class="flex-1 min-w-[120px]" x-data="dropdown({
+                    options: [
+                        {id: '', name: 'ค้นหาลักษณะบ้าน'},
+                        {% for feature in house_features %}
+                            {id: '{{ feature.id }}', name: '{{ feature.name }}'},
+                        {% endfor %}
+                    ], 
+                    selected: '{{ request.args.get('feature', '') }}', 
+                    name: 'feature'
+                })">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
                     <div class="relative">
-                        <input type="hidden" name="bedrooms" :value="selected">
+                        <input type="hidden" name="feature" :value="selected">
                         <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
                             <span x-text="selectedName()" class="truncate"></span>
                             <template x-if="selected && selected !== options[0].id">

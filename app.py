@@ -4189,15 +4189,29 @@ def admin_reports():
         cur.execute("SELECT t_id as id, t_name as name FROM house_type ORDER BY t_name")
         house_types = cur.fetchall()
         
+        # Get all house features
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features ORDER BY name")
+        house_features = cur.fetchall()
+        
+        # Get selected filters from request args
+        selected_type = request.args.get('type')
+        selected_project = request.args.get('project')
+        selected_feature = request.args.get('feature')
+        
         return render_template('admin_reports.html', 
                              projects=projects, 
-                             house_types=house_types)
+                             house_types=house_types,
+                             house_features=house_features,
+                             selected_type=selected_type,
+                             selected_project=selected_project,
+                             selected_feature=selected_feature)
     except Exception as e:
         print(f"Error fetching dropdown data: {str(e)}")
         # Still render the template even if there's an error
         return render_template('admin_reports.html', 
                              projects=[], 
-                             house_types=[])
+                             house_types=[],
+                             house_features=[])
     finally:
         cur.close()
 
@@ -4890,7 +4904,7 @@ def reports_chart_data():
         
         project_filter = request.args.get('project', '')
         type_filter = request.args.get('type', '')
-        bedroom_filter = request.args.get('bedrooms', '')
+        feature_filter = request.args.get('feature', '')
         min_price = request.args.get('min_price', '')
         max_price = request.args.get('max_price', '')
         status_filter = request.args.get('house_status', '')
@@ -4912,10 +4926,10 @@ def reports_chart_data():
         if type_filter:
             where_conditions.append("h.t_id = %s")
             params.append(type_filter)
-        
-        if bedroom_filter and bedroom_filter.isdigit():
-            where_conditions.append("h.bedrooms = %s")
-            params.append(int(bedroom_filter))
+            
+        if feature_filter:
+            where_conditions.append("h.f_id = %s")
+            params.append(feature_filter)
         
         if min_price:
             where_conditions.append("h.price >= %s")
@@ -4945,49 +4959,65 @@ def reports_chart_data():
         total_views = cur.fetchone()[0]
         
         # Get most viewed houses (top 5) with filters
-        cur.execute(f"""
+        most_viewed_query = f"""
             SELECT h.h_id, h.h_title, h.view_count
             FROM house h
             {join_clause}
+        """
+            
+        most_viewed_query += f"""
             WHERE {where_clause} AND h.view_count > 0
+            GROUP BY h.h_id, h.h_title, h.view_count
             ORDER BY h.view_count DESC
             LIMIT 5
-        """, tuple(params))
+        """
+        
+        cur.execute(most_viewed_query, tuple(params))
         most_viewed_houses = [
             {'id': row[0], 'title': row[1], 'views': row[2]}
             for row in cur.fetchall()
         ]
         
         # Get views by house type with filters
-        cur.execute(f"""
+        views_by_type_query = f"""
             SELECT 
                 COALESCE(ht.t_name, 'ไม่มีประเภท') as type_name,
-                COUNT(h.h_id) as house_count
+                COUNT(DISTINCT h.h_id) as house_count
             FROM house h
             LEFT JOIN house_type ht ON h.t_id = ht.t_id
             LEFT JOIN project p ON h.p_id = p.p_id
+        """
+            
+        views_by_type_query += f"""
             WHERE {where_clause}
             GROUP BY ht.t_id, ht.t_name
             ORDER BY house_count DESC
-        """, tuple(params))
+        """
+        
+        cur.execute(views_by_type_query, tuple(params))
         views_by_type = [
             {'type': row[0], 'views': int(row[1] or 0)}
             for row in cur.fetchall()
         ]
         
         # Get views trend (last 30 days) with filters
-        cur.execute(f"""
+        views_trend_query = f"""
             SELECT 
                 DATE(hv.created_at) as view_date,
-                COUNT(*) as view_count
+                COUNT(DISTINCT hv.id) as view_count
             FROM house_views hv
             JOIN house h ON hv.house_id = h.h_id
             {join_clause}
+        """
+            
+        views_trend_query += f"""
             WHERE hv.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             AND {where_clause}
             GROUP BY DATE(hv.created_at)
             ORDER BY view_date
-        """, tuple(params))
+        """
+        
+        cur.execute(views_trend_query, tuple(params))
         views_trend = [
             {'date': row[0].strftime('%Y-%m-%d'), 'views': row[1]}
             for row in cur.fetchall()

@@ -211,7 +211,7 @@
                         </h2>
                     </div>
                     
-                    <form id="filterForm" class="px-6 py-4">
+                    <form id="filterForm" method="GET" action="{{ url_for('admin_reports') }}" class="px-6 py-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                             <!-- ประเภทบ้าน -->
                             <div class="lg:col-span-2">
@@ -243,18 +243,18 @@
                                 </select>
                             </div>
 
-                            <!-- จำนวนห้องนอน -->
+                            <!-- ลักษณะบ้าน -->
                             <div class="lg:col-span-2">
-                                <label for="bedrooms" class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-bed mr-1 text-blue-600"></i> ลักษณะบ้าน
+                                <label for="feature" class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-home mr-1 text-blue-600"></i> ลักษณะบ้าน
                                 </label>
-                                <select id="bedrooms" name="bedrooms" class="select2 w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition duration-150 ease-in-out">
-                                    <option value="">ทั้งหมด</option>
-                                    <option value="1" {% if '1' == request.args.get('bedrooms') %}selected{% endif %}>1 ห้องนอน</option>
-                                    <option value="2" {% if '2' == request.args.get('bedrooms') %}selected{% endif %}>2 ห้องนอน</option>
-                                    <option value="3" {% if '3' == request.args.get('bedrooms') %}selected{% endif %}>3 ห้องนอน</option>
-                                    <option value="4" {% if '4' == request.args.get('bedrooms') %}selected{% endif %}>4 ห้องนอน</option>
-                                    <option value="5" {% if '5' == request.args.get('bedrooms') %}selected{% endif %}>5+ ห้องนอน</option>
+                                <select id="feature" name="feature" class="select2 w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition duration-150 ease-in-out">
+                                    <option value="">-- เลือกลักษณะบ้าน --</option>
+                                    {% for feature in house_features %}
+                                        <option value="{{ feature.id }}" {% if selected_feature and selected_feature|string == feature.id|string %}selected{% endif %}>
+                                            {{ feature.name }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </div>
 
@@ -842,7 +842,7 @@
                 const filterElements = {
                     'project': 'project_id',
                     'type': 'house_type_id',
-                    'bedrooms': 'bedrooms',
+                    'feature': 'feature',
                     'min_price': 'min_price',
                     'max_price': 'max_price',
                     'house_status': 'house_status',
@@ -912,18 +912,6 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize charts
-            initializeCharts();
-
-            // Handle form submission
-            const filterForm = document.getElementById('filterForm');
-            if (filterForm) {
-                filterForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    fetchFilteredData();
-                });
-            }
-
             // Initialize Select2
             $('.select2').select2({
                 placeholder: 'เลือก...',
@@ -969,9 +957,8 @@
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    fetchFilteredData();
                     
-                    // Update URL
+                    // Update URL and submit the form
                     const formData = new FormData(form);
                     const params = new URLSearchParams();
                     
@@ -979,8 +966,8 @@
                         if (value) params.append(key, value);
                     }
                     
-                    const newUrl = `${window.location.pathname}?${params.toString()}`;
-                    window.history.pushState({}, '', newUrl);
+                    // Submit the form normally to refresh the page with new filters
+                    window.location.href = `${form.action}?${params.toString()}`;
                 });
             }
 
