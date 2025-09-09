@@ -1,36 +1,23 @@
-# Core Flask
 Flask==2.3.3
 Flask-WTF==1.2.1
 Werkzeug==2.3.7
-python-dotenv==1.0.0
-
-# Database
 PyMySQL==1.1.0
-Flask-SQLAlchemy==3.0.5
-Flask-MySQL==1.5.2
-psycopg2-binary==2.9.9
-
-# Image Processing
+python-dotenv==1.0.0
 Pillow==10.0.1
-
-# Machine Learning (commented out for now as they're large and might not be needed in production)
-# torch==2.1.0
-# torchvision==0.16.0
-# numpy==1.24.4
-# matplotlib==3.7.3
-
-# PDF Generation
+torch==2.1.0
+torchvision==0.16.0
+matplotlib==3.7.3
+numpy==1.24.4
 xhtml2pdf==0.2.10
 reportlab==4.0.4
-pdfkit==1.0.0
-
-# Utilities
 python-dateutil==2.8.2
+pdfkit==1.0.0
 Jinja2==3.1.2
 WTForms==3.0.1
 email-validator==2.0.0.post2
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+Flask-SQLAlchemy==3.0.5
+Flask-MySQL==1.5.2
 cryptography==41.0.7
 gevent==23.7.0
-
-# Production Server
-gunicorn==21.2.0
