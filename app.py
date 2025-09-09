@@ -36,6 +36,8 @@ from flask import (
     abort, 
     Response
 )
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from flask_wtf import FlaskForm
@@ -167,11 +169,11 @@ def load_user(user_id):
         cur.close()
 
 # MySQL Configuration
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'projectdb')
-app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3307))
+app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'localhost')
+app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER', 'root')
+app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD', '')
+app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE', 'projectdb')
+app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3307))
 
 mysql = MySQL(app)
 
