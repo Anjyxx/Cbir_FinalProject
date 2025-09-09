@@ -1,8 +1,8 @@
-# Gunicorn configuration file
-workers = 4
+import os
+
+workers = 2
 worker_class = 'sync'
-bind = '0.0.0.0:10000'
+threads = 2
+bind = f"0.0.0.0:{os.environ.get('PORT', 10000)}"
 timeout = 120
 keepalive = 5
-threads = 4
-worker_connections = 1000
