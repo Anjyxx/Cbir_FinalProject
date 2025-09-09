@@ -8,8 +8,11 @@ import traceback
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 
-# Set the locale to handle Thai characters
-locale.setlocale(locale.LC_ALL, 'th_TH.UTF-8')
+try:
+    locale.setlocale(locale.LC_ALL, 'th_TH.UTF-8')
+except locale.Error:
+    # ถ้าไม่มี locale ภาษาไทย ให้ใช้ default
+    locale.setlocale(locale.LC_ALL, '')
 
 # Set default encoding to UTF-8 for console output
 if sys.stdout.encoding != 'utf-8':
@@ -3531,17 +3534,23 @@ def houses_list():
         count_query += " AND h.p_id = %s"
         house_params.append(selected_project)
         count_params.append(selected_project)
-    if selected_feature:
-        house_query += " AND h.f_id = %s"
-        count_query += " AND h.f_id = %s"
-        house_params.append(selected_feature)
-        count_params.append(selected_feature)
     # Add bedrooms filter if provided
     if bedrooms and bedrooms.isdigit():
         house_query += " AND h.bedrooms = %s"
         count_query += " AND h.bedrooms = %s"
         house_params.append(int(bedrooms))
         count_params.append(int(bedrooms))
+        
+    # Feature filter (only apply if no bedroom filter is selected or when specifically filtering by feature)
+    if selected_feature and not (bedrooms and bedrooms.isdigit()):
+        if selected_feature == 'none':
+            house_query += " AND h.f_id IS NULL"
+            count_query += " AND h.f_id IS NULL"
+        else:
+            house_query += " AND h.f_id = %s"
+            count_query += " AND h.f_id = %s"
+            house_params.append(selected_feature)
+            count_params.append(selected_feature)
         
     if search_query:
         sq = f"%{search_query}%"

@@ -86,6 +86,7 @@
                 <div class="flex-1 min-w-[120px]" x-data="dropdown({
                     options: [
                         {id: '', name: 'ค้นหาลักษณะบ้าน'},
+                        {id: 'none', name: 'ไม่มีลักษณะเฉพาะ'},
                         {% for feature in house_features %}
                             {id: '{{ feature.id }}', name: '{{ feature.name }}'}{% if not loop.last %},{% endif %}
                         {% endfor %}
