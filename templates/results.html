@@ -87,24 +87,25 @@
                     options: [
                         {id: '', name: 'ค้นหาลักษณะบ้าน'},
                         {% for feature in house_features %}
-                            {id: '{{ feature.id }}', name: '{{ feature.name }}'},
+                            {id: '{{ feature.id }}', name: '{{ feature.name }}'}{% if not loop.last %},{% endif %}
                         {% endfor %}
                     ], 
                     selected: '{{ request.args.get('feature', '') }}', 
-                    name: 'feature'
+                    name: 'feature',
+                    persist: true
                 })">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
                     <div class="relative">
-                        <input type="hidden" name="feature" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
-                            <template x-if="selected && selected !== options[0].id">
-                                <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </template>
-                            <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
+                            <input type="hidden" name="feature" :value="selected">
+                            <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open" x-text="selected ? (options.find(opt => opt.id === selected)?.name || options[0].name) : options[0].name" :class="{'text-gray-400': !selected}">
+                                <span x-text="selected ? (options.find(opt => opt.id === selected)?.name || options[0].name) : options[0].name" class="truncate"></span>
+                                <template x-if="selected && selected !== options[0].id">
+                                    <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </template>
+                                <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
                         <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
                             <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm">
                             <template x-for="option in filteredOptions()" :key="option.id">

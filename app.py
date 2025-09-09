@@ -3532,8 +3532,8 @@ def houses_list():
         house_params.append(selected_project)
         count_params.append(selected_project)
     if selected_feature:
-        house_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
-        count_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+        house_query += " AND h.f_id = %s"
+        count_query += " AND h.f_id = %s"
         house_params.append(selected_feature)
         count_params.append(selected_feature)
     # Add bedrooms filter if provided
