@@ -12,6 +12,8 @@ const PIP = 'pip3.12';
 process.env.PYTHONUNBUFFERED = '1';
 process.env.PYTHONDONTWRITEBYTECODE = '1';
 process.env.PIP_NO_CACHE_DIR = 'off';
+process.env.PYTHON_VERSION = '3.12';
+process.env.PYTHONPATH = process.cwd();
 
 // Create api directory if it doesn't exist
 const apiDir = path.join(process.cwd(), 'api');

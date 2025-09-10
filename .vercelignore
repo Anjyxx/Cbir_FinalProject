@@ -1,13 +1,49 @@
-# Ignore Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+.python-version
+.pytest_cache/
+.mypy_cache/
 
-# Ignore virtual environment
+# Virtual Environment
 venv/
 env/
+.venv/
 
-# Ignore IDE specific files
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local development
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build files
+build/
+dist/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+
+# Vercel
+.vercel/
+
+# Misc
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp

@@ -14,19 +14,35 @@ echo "🔍 Using Python: $($PYTHON --version 2>&1) at $(which $PYTHON)"
 export PYTHONUNBUFFERED=1
 export PYTHONDONTWRITEBYTECODE=1
 export PIP_NO_CACHE_DIR=off
+export PYTHONPATH=$PWD
+
+# Function to run commands with error handling
+run_command() {
+    echo -e "\n💻 Running: $*"
+    if ! "$@"; then
+        echo -e "❌ Command failed: $*"
+        exit 1
+    fi
+}
+
+# Ensure Python 3.12 is available
+if ! command -v $PYTHON &> /dev/null; then
+    echo "❌ Python $PYTHON_VERSION is not installed. Installing..."
+    apt-get update && apt-get install -y python3.12 python3.12-venv
+fi
 
 # Ensure pip is installed
 if ! command -v $PIP &> /dev/null; then
     echo "📦 Installing pip for Python $PYTHON_VERSION..."
-    curl -sS https://bootstrap.pypa.io/get-pip.py | $PYTHON
+    run_command curl -sS https://bootstrap.pypa.io/get-pip.py | $PYTHON
 fi
 
 # Upgrade pip
 echo "🔄 Upgrading pip..."
-$PYTHON -m pip install --upgrade pip
+run_command $PYTHON -m pip install --upgrade pip
 
 # Create api directory if it doesn't exist
-mkdir -p api
+run_command mkdir -p api
 
 # Create app.py in api directory if it doesn't exist
 if [ ! -f "api/app.py" ]; then
@@ -34,22 +50,25 @@ if [ ! -f "api/app.py" ]; then
     echo 'from app import app as application' > api/app.py
 fi
 
-# Install requirements from root directory
-if [ -f "requirements.txt" ]; then
-    echo "📦 Installing requirements from root..."
-    $PYTHON -m pip install -r requirements.txt --no-cache-dir
+# Install requirements from api/requirements.in if it exists
+if [ -f "api/requirements.in" ]; then
+    echo "📦 Installing requirements from api/requirements.in..."
+    run_command $PYTHON -m pip install -r api/requirements.in --no-cache-dir
+# Fall back to api/requirements.txt if it exists
+elif [ -f "api/requirements.txt" ]; then
+    echo "📦 Installing requirements from api/requirements.txt..."
+    run_command $PYTHON -m pip install -r api/requirements.txt --no-cache-dir
 fi
 
-# Install requirements from api directory
-if [ -f "api/requirements.txt" ]; then
-    echo "📦 Installing requirements from api/requirements.txt..."
-    $PYTHON -m pip install -r api/requirements.txt --no-cache-dir
-    python3 -m pip install -r requirements.txt --no-cache-dir
+# Install root requirements.txt if it exists
+if [ -f "requirements.txt" ]; then
+    echo "📦 Installing root requirements..."
+    run_command $PYTHON -m pip install -r requirements.txt --no-cache-dir
 fi
 
 # Verify installation
 echo "✅ Verifying installation..."
-python3 -c "import torch; print(f'PyTorch version: {torch.__version__}')" || echo "PyTorch verification failed"
-python3 -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')" || echo "torchvision verification failed"
+run_command $PYTHON -c "import sys; print(f'Python {sys.version}')"
+run_command $PYTHON -c "import flask; print(f'Flask {flask.__version__}')" || true
 
 echo "✨ Build completed successfully!"
