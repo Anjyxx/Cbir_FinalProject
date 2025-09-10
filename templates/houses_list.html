@@ -201,12 +201,12 @@
                 <div class="text-gray-500">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</div>
             </div>
         {% else %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-6 max-w-7xl mx-auto px-4 sm:px-6">
             {% for house in houses %}
-            <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
+            <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col h-full">
                 <div class="relative overflow-hidden">
                     {% set main_img = house.main_image_url if house.main_image_url else (house.gallery_images[0] if house.gallery_images is defined and house.gallery_images|length > 0 else '/static/img/house_placeholder.jpg') %}
-                    <img src="{{ main_img }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-52 md:h-56 object-cover rounded-t-xl group-hover:scale-105 transition-transform duration-300">
+                    <img src="{{ main_img }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-52 md:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
                     <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
                 </div>
                 <div class="p-4 flex flex-col flex-grow">

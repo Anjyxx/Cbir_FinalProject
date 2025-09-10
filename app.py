@@ -118,7 +118,9 @@ csrf = CSRFProtect(app)
 @login_manager.user_loader
 def load_user(user_id):
     print(f"\n=== Loading user with ID: {user_id} ===")
-    print(f"Session data in load_user: {dict(session)}")
+    
+    # Safely log session keys without converting to dict
+    print(f"Session keys: {list(session.keys())}")
     
     if not user_id or not user_id.isdigit():
         print(f"Invalid user_id: {user_id}")

@@ -154,9 +154,9 @@
                 <div class="text-gray-500">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</div>
             </div>
         {% else %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-6 max-w-7xl mx-auto px-4 sm:px-6">
             {% for house in houses %}
-                <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full flex flex-col">
                     <div class="relative overflow-hidden">
                         <img src="{{ house.main_image_url if house.main_image_url else '/static/img/house_placeholder.jpg' }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-52 md:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
                         <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
@@ -164,7 +164,7 @@
                 <div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">คล้าย {{ (house.similarity * 100) | round(1) }}%</div>
                 {% endif %}
                     </div>
-                    <div class="p-4 flex flex-col justify-between flex-grow">
+                    <div class="p-4 flex flex-col flex-grow">
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 mb-1">{{ house.title }}</h3>
                             <div class="flex items-center gap-2 text-gray-700 text-sm mb-1 flex-wrap">
@@ -172,21 +172,23 @@
                                 {{ house.location or house.project_name or 'N/A' }}
                                 <span class="mx-1 text-gray-400"></span>
                             </div>
-                            <div class="mt-3 sm:mt-4 flex flex-wrap justify-between items-center gap-2 text-sm text-gray-800">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4 mr-1">
-                                    {{ house.bedrooms }} ห้องนอน
-                                </span>
-                                <span class="flex items-center whitespace-nowrap">
-                                    <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-4 h-4 mr-1">
-                                    {{ house.bathrooms }} ห้องน้ำ
-                                </span>
-                                {% if house.area is not none %}
-                                <span class="flex items-center whitespace-nowrap">
-                                    <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-4 h-4 mr-1">
-                                    {{ "{:,.0f}".format(house.area | float) }} ตร.ม.
-                                </span>
-                                {% endif %}
+                            <div class="mt-3 sm:mt-4 flex items-center justify-between text-sm text-gray-800">
+                                <div class="flex items-center space-x-4">
+                                    <span class="flex items-center">
+                                        <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4 mr-1">
+                                        <span class="whitespace-nowrap">{{ house.bedrooms }} ห้องนอน</span>
+                                    </span>
+                                    <span class="flex items-center">
+                                        <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-4 h-4 mr-1">
+                                        <span class="whitespace-nowrap">{{ house.bathrooms }} ห้องน้ำ</span>
+                                    </span>
+                                    {% if house.area is not none %}
+                                    <span class="flex items-center">
+                                        <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-4 h-4 mr-1">
+                                        <span class="whitespace-nowrap">{{ "{:,.0f}".format(house.area | float) }} ตร.ม.</span>
+                                    </span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         <div>

@@ -1,0 +1,104 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore local environment files
+.env
+.env.local
+
+# Ignore uploads directory
+uploads/
+
+# Ignore large files or directories
+*.pth
+*.pkl
+*.h5
+*.pt
+*.bin
+
+# Ignore database files
+*.db
+*.sqlite3
+
+# Ignore log files
+*.log
+
+# Ignore Python build files
+build/
+dist/
+*.egg-info/
+
+# Ignore test files
+tests/
+*.test.py
+
+# Ignore Jupyter notebooks
+*.ipynb
+
+# Ignore macOS files
+.DS_Store
+
+# Ignore Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Ignore Vercel specific
+.vercel/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore Python virtual environment
+venv/
+ENV/
+
+# Ignore Python debug log
+*.log
+
+# Ignore local development files
+local_settings.py
+*.local.py
+
+# Ignore large data files
+*.npy
+*.npz
+*.hdf5
+*.h5
+
+# Ignore model files
+*.pth
+*.pt
+*.pkl
+*.joblib
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Ignore Python cache
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+
+# Ignore environment files
+.env*
+!.env.example
+
+# Ignore uploads directory
+uploads/
