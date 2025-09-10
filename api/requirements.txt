@@ -2,11 +2,36 @@
 Flask==2.3.3
 Werkzeug==2.3.7
 Jinja2==3.1.2
+
+# Database
 PyMySQL==1.1.0
+Flask-MySQL==1.5.2
+Flask-SQLAlchemy==3.0.5
+
+# Environment
 python-dotenv==1.0.0
-Pillow==10.0.1
-numpy==1.24.4
+
+# Web Forms
+Flask-WTF==1.2.1
+WTForms==3.0.1
+email-validator==2.0.0.post2
+
+# Web Server
+gunicorn==21.2.0
+itsdangerous==2.1.2
+click==8.1.7
+
+# Vercel
+vercel==28.19.0
+
+# Security
+cryptography==41.0.7
 
 # PyTorch with specific CPU-only versions
 torch==2.0.1
 torchvision==0.15.2
+
+# Add any additional dependencies below with specific versions
+# to ensure compatibility with Python 3.12
+Pillow==10.0.1
+numpy==1.24.4

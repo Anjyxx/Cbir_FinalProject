@@ -1,33 +1,28 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/app.py",
-      "use": "@vercel/python",
-      "config": {
-        "pythonVersion": "3.9",
-        "maxLambdaSize": "15mb"
+    "version": 2,
+    "builds": [
+      {
+        "src": "api/app.py",
+        "use": "@vercel/python@3.0.0",
+        "config": {
+          "pythonVersion": "3.12",
+          "maxLambdaSize": "50mb"
+        }
+      },
+      {
+        "src": "static/**",
+        "use": "@vercel/static"
       }
-    },
-    {
-      "src": "static/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "templates/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/app.py"
-    }
-  ],
-  "buildCommand": "node vercel-build.js",
-  "installCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir"
-}
+    ],
+    "routes": [
+      {
+        "src": "/static/(.*)",
+        "dest": "/static/$1"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/api/app.py"
+      }
+    ]
+  }
+  
