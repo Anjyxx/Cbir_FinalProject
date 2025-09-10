@@ -1,0 +1,13 @@
+{
+  "name": "baantang",
+  "version": "1.0.0",
+  "scripts": {
+    "vercel-build": "bash vercel_build.sh"
+  },
+  "dependencies": {
+    "vercel": "^28.19.0"
+  },
+  "engines": {
+    "node": ">=14.x"
+  }
+}
