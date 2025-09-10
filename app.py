@@ -3543,16 +3543,34 @@ def houses_list():
         house_params.append(int(bedrooms))
         count_params.append(int(bedrooms))
         
-    # Feature filter (only apply if no bedroom filter is selected or when specifically filtering by feature)
-    if selected_feature and not (bedrooms and bedrooms.isdigit()):
-        if selected_feature == 'none':
-            house_query += " AND h.f_id IS NULL"
-            count_query += " AND h.f_id IS NULL"
-        else:
-            house_query += " AND h.f_id = %s"
-            count_query += " AND h.f_id = %s"
-            house_params.append(selected_feature)
-            count_params.append(selected_feature)
+    # Feature filter - check if it's a bedroom feature
+    if selected_feature and selected_feature != 'none':
+        # First, get the feature name to check if it's a bedroom filter
+        cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (selected_feature,))
+        feature = cur.fetchone()
+        
+        if feature:
+            feature_name = feature[0]
+            # Check if this is a bedroom filter (e.g., "2 ห้องนอน" or "2ห้องนอน")
+            import re
+            bedroom_match = re.search(r'(\d+)\s*ห้องนอน', feature_name)
+            
+            if bedroom_match:
+                # This is a bedroom filter, use the bedrooms column instead of feature mapping
+                bedroom_count = int(bedroom_match.group(1))
+                house_query += " AND h.bedrooms = %s"
+                count_query += " AND h.bedrooms = %s"
+                house_params.append(bedroom_count)
+                count_params.append(bedroom_count)
+            else:
+                # This is a regular feature filter
+                house_query += " AND h.f_id = %s"
+                count_query += " AND h.f_id = %s"
+                house_params.append(selected_feature)
+                count_params.append(selected_feature)
+    elif selected_feature == 'none':
+        house_query += " AND h.f_id IS NULL"
+        count_query += " AND h.f_id IS NULL"
         
     if search_query:
         sq = f"%{search_query}%"
@@ -4467,7 +4485,7 @@ def generate_pdf_report():
             
             # Add main title and subtitle
             elements.append(Paragraph('BAANTANG DEVELOPMENT REPORT', main_title_style))
-            elements.append(Paragraph(f'Generated on: {datetime.now().strftime("%d %B %Y, %H:%M")}', subtitle_style))
+            elements.append(Paragraph(f'สร้างเมื่อ: {datetime.now().strftime("%d %B %Y, %H:%M")}', subtitle_style))
             elements.append(Spacer(1, 20))
             
             # Add report title with Thai font
@@ -5135,7 +5153,7 @@ def reports_chart_data():
             WHERE {where_clause}
             GROUP BY 
                 CASE 
-                    WHEN h.status = 'Available' THEN 'ว่าง' 
+                    WHEN h.status = 'Available' THEN 'พร้อมขาย' 
                     WHEN h.status = 'Reserved' THEN 'จองแล้ว' 
                     WHEN h.status = 'Sold' THEN 'ขายแล้ว' 
                     ELSE COALESCE(h.status, 'ไม่ระบุ')

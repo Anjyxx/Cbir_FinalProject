@@ -148,15 +148,15 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% if house.status == 'available' %}
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Available
+                                        ว่าง
                                     </span>
                                     {% elif house.status == 'inactive' %}
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-700">
-                                        Inactive
+                                        ไม่พร้อมขาย
                                     </span>
                                     {% elif house.status == 'sold' %}
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        Sold
+                                        ขายแล้ว
                                     </span>
                                     {% else %}
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-700">
