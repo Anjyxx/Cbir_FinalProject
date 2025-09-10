@@ -3,7 +3,11 @@
   "builds": [
     {
       "src": "api/app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "pythonVersion": "3.9",
+        "maxLambdaSize": "15mb"
+      }
     },
     {
       "src": "static/**",
@@ -23,5 +27,7 @@
       "src": "/(.*)",
       "dest": "/api/app.py"
     }
-  ]
+  ],
+  "buildCommand": "node vercel-build.js",
+  "installCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements.txt --no-cache-dir"
 }

@@ -15,11 +15,11 @@ if (!fs.existsSync(apiDir)) {
   fs.mkdirSync(apiDir, { recursive: true });
 }
 
-// Create a minimal Python server
-const indexPyPath = path.join(apiDir, 'index.py');
-if (!fs.existsSync(indexPyPath)) {
-  console.log('📝 Creating minimal Python server...');
-  fs.writeFileSync(indexPyPath, 'from app import app as application');
+// Create app.py in api directory if it doesn't exist
+const appPyPath = path.join(apiDir, 'app.py');
+if (!fs.existsSync(appPyPath)) {
+  console.log('📝 Creating app.py for Vercel...');
+  fs.writeFileSync(appPyPath, 'from app import app as application\n');
 }
 
 // Function to run commands with error handling
