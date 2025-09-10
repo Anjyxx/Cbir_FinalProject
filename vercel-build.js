@@ -2,9 +2,9 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Starting Vercel build process...');
+console.log('🚀 Starting Vercel build process for Python 3.12...');
 
-// Set environment variables
+// Set environment variables for Python 3.12
 process.env.PYTHONUNBUFFERED = '1';
 process.env.PYTHONDONTWRITEBYTECODE = '1';
 
@@ -22,23 +22,32 @@ if (!fs.existsSync(appPyPath)) {
   fs.writeFileSync(appPyPath, 'from app import app as application\n');
 }
 
-// Function to run commands with error handling
+// Function to run commands with error handling for Python 3.12
 function runCommand(command, options = {}) {
-  console.log(`\n💻 Running: ${command}`);
+  // Replace python with python3.12 in the command
+  const pythonCommand = command
+    .replace(/^python /, 'python3.12 ')
+    .replace(/python -m /g, 'python3.12 -m ');
+    
+  console.log(`\n💻 Running: ${pythonCommand}`);
+  
   try {
-    execSync(command, {
+    execSync(pythonCommand, {
       stdio: 'inherit',
       ...options,
       env: { 
         ...process.env,
         PIP_NO_CACHE_DIR: 'off',
+        PYTHONPATH: process.cwd(),
         ...(options.env || {})
       }
     });
     return true;
   } catch (error) {
-    console.error(`❌ Command failed: ${command}`);
-    console.error(error.message);
+    console.error(`❌ Command failed: ${pythonCommand}`);
+    console.error('Error details:', error.message);
+    console.error('Error code:', error.status || 'N/A');
+    console.error('Error output:', error.stderr?.toString() || 'No stderr output');
     return false;
   }
 }
