@@ -14,7 +14,8 @@
   "vercel": {
     "buildCommand": "node vercel-build.js",
     "outputDirectory": "api",
-    "cleanUrls": true
+    "cleanUrls": true,
+    "installCommand": "python -m pip install --upgrade pip && python -m pip install -r api/requirements.txt --no-cache-dir"
   },
   "devDependencies": {
     "@vercel/node": "^2.15.6"

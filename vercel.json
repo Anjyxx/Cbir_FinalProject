@@ -3,11 +3,7 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "pythonVersion": "3.9",
-        "maxLambdaSize": "15mb"
-      }
+      "use": "@vercel/python"
     },
     {
       "src": "static/**",
@@ -20,15 +16,12 @@
   ],
   "routes": [
     {
-      "src": "/static/(?<path>.*)",
-      "dest": "/static/$path"
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
       "dest": "/api/index.py"
     }
-  ],
-  "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
-  "installCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
-  "outputDirectory": "api"
+  ]
 }
