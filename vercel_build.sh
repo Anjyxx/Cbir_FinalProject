@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set Python version
-PYTHON_VERSION=3.9
+PYTHON_VERSION=3.12
 
 # Install required system dependencies
 apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ apt-get update && apt-get install -y \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Python 3.9 as default
+# Set Python 3.12 as default
 update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1
 update-alternatives --set python3 /usr/bin/python${PYTHON_VERSION}
 
