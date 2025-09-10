@@ -5,32 +5,30 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "pythonVersion": "3.9"
+        "pythonVersion": "3.9",
+        "maxLambdaSize": "15mb"
       }
     },
     {
-      "src": "static/*",
+      "src": "static/**",
       "use": "@vercel/static"
     },
     {
-      "src": "templates/*",
+      "src": "templates/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "src": "/static/(?<path>.*)",
+      "dest": "/static/$path"
     },
     {
       "src": "/(.*)",
       "dest": "/api/index.py"
     }
   ],
-  "build": {
-    "env": {
-      "PYTHON_VERSION": "3.9"
-    }
-  },
-  "installCommand": "chmod +x vercel-build.sh && ./vercel-build.sh"
+  "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
+  "installCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
+  "outputDirectory": "api"
 }

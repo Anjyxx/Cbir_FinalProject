@@ -1,18 +1,12 @@
-# Core Flask
+# Core Dependencies
 Flask==2.3.3
 Werkzeug==2.3.7
 Jinja2==3.1.2
-
-# Database
 PyMySQL==1.1.0
-
-# Environment
 python-dotenv==1.0.0
-
-# Image Processing
 Pillow==10.0.1
-
-# Machine Learning
-torch==2.2.0
-torchvision==0.17.0
 numpy==1.24.4
+
+# PyTorch with specific CPU-only versions
+torch==2.0.0+cpu --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.15.1+cpu --index-url https://download.pytorch.org/whl/cpu
