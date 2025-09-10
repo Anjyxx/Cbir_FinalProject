@@ -4,13 +4,16 @@
 
 {% block content %}
 <!-- HERO SECTION WITH BANNER BACKGROUND -->
-<section class="relative flex flex-col items-center justify-start bg-white pt-12 pb-0">
+<section class="relative flex flex-col items-center justify-start bg-white pt-4 sm:pt-8 md:pt-12 pb-0">
     <!-- Banner Image Container -->
-    <div class="relative w-full flex justify-center" style="z-index:1;">
-        <img src="{{ url_for('static', filename='img/SALE BANNER.png') }}" alt="Promotion Banner" class="object-cover rounded-[2rem] shadow-xl border border-blue-100 w-[92vw] max-w-6xl aspect-[16/6]" style="object-position: center;" />
+    <div class="relative w-full flex justify-center px-2 sm:px-4" style="z-index:1;">
+        <img src="{{ url_for('static', filename='img/SALE BANNER.png') }}" 
+             alt="Promotion Banner" 
+             class="object-cover rounded-2xl md:rounded-[2rem] shadow-lg md:shadow-xl border border-blue-100 w-full max-w-6xl aspect-[16/7] sm:aspect-[16/6]" 
+             style="object-position: center;" />
         <!-- Floating Filter Bar (absolute, bottom center, overlaps image) -->
-        <form method="GET" action="{{ url_for('houses_list') }}" class="absolute left-1/2 -translate-x-1/2 bottom-[-2.5rem] w-[90vw] max-w-3xl">
-            <div class="flex flex-col md:flex-row items-center justify-center bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-3 gap-2 md:gap-4 border border-blue-100 relative" style="box-shadow: 0 8px 32px 0 rgba(31, 93, 183, 0.10);">
+        <form method="GET" action="{{ url_for('houses_list') }}" class="relative sm:absolute left-1/2 -translate-x-1/2 bottom-[-1.5rem] sm:bottom-[-2.5rem] w-[95%] sm:w-[90vw] max-w-3xl mt-6 sm:mt-0">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center bg-white/80 sm:bg-white/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 gap-3 sm:gap-4 border border-blue-100 relative" style="box-shadow: 0 8px 32px 0 rgba(31, 93, 183, 0.10);">
                 <!-- House Type Dropdown (modernized) -->
                 <div class="flex-1 min-w-[120px]" x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ประเภทบ้าน</label>
@@ -127,7 +130,7 @@
                 }
                 </script>
                 
-                <button type="submit" class="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl ml-0 md:ml-2 mt-6 md:mt-0 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 align-middle shadow-md self-end" style="min-width: 90px;">
+                <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 sm:py-2 rounded-xl font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-md">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35" />
@@ -141,76 +144,89 @@
     <div class="h-16"></div>
 </section>    
 
-<div class="container mx-auto px-2 py-8">
-    <div class="text-center space-y-6">
-        <h2 class="text-3xl md:text-4xl font-bold">
-            <span class="text-black">ทำไมต้องเป็นโครงการ</span> 
-            <span class="text-yellow-300">BAANTANG</span>
+<div class="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div class="text-center space-y-4 sm:space-y-6">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold">
+            <span class="text-gray-900">ทำไมต้องเป็นโครงการ</span> 
+            <span class="text-yellow-400">BAANTANG</span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+        <p class="text-base sm:text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed px-2">
             บ้านในโครงการ "BAAN TANG" ถูกออกแบบมาให้สวยงาม ทันสมัย 
-            <br class="hidden md:block">
-            และตอบสนองความต้องการในชีวิตประจำวันได้อย่างลงตัว
+            <span class="block sm:inline">และตอบสนองความต้องการในชีวิตประจำวันได้อย่างลงตัว</span>
         </p>
     </div>
 </div>
 
 <!-- "Popular Houses" Section -->
-<section class="bg-white-50 py-12">
-    <div class="container mx-auto px-4">
+<section class="bg-white-50 py-8 sm:py-12">
+    <div class="container mx-auto px-3 sm:px-4">
         <!-- Section Header -->
-        <div class="text-center mb-10 flex items-center justify-center space-x-4">
-            <div class="w-48 h-1 bg-yellow-400"></div>
-            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 px-4">
-                บ้านยอดนิยม
-            </h2>
-            <div class="w-48 h-1 bg-yellow-400"></div>
+        <div class="text-center mb-8 sm:mb-12">
+            <div class="flex items-center justify-center space-x-2 sm:space-x-4">
+                <div class="w-16 sm:w-24 md:w-48 h-0.5 sm:h-1 bg-yellow-400"></div>
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-800 px-3 sm:px-4 whitespace-nowrap">
+                    บ้านยอดนิยม
+                </h2>
+                <div class="w-16 sm:w-24 md:w-48 h-0.5 sm:h-1 bg-yellow-400"></div>
+            </div>
         </div>
 
         <!-- Houses Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
 
             {% for house in houses %}
-                <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
-                    <div class="relative overflow-hidden">
-                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/house_placeholder.jpg' }}" alt="Image of {{ house.title }}" class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300">
-                        <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
-                    </div>
-                    <div class="p-4 flex flex-col justify-between flex-grow">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ house.title }}</h3>
-                            <div class="flex items-center gap-2 text-gray-700 text-sm mb-1 flex-wrap">
-                                <img src="{{ url_for('static', filename='img/icons/location_icon.png') }}" alt="Location Icon" class="w-4 h-4 text-green-500">
-                                {{ house.location or house.project_name or 'N/A' }}
-                                <span class="mx-1 text-gray-400"></span>
-                                
-                            </div>
-                            <div class="mt-4 flex justify-between items-center space-x-2 text-sm text-gray-800  ">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4 mr-1">
-                                    {{ house.bedrooms }} ห้องนอน
-                                </span>
-                                    <span class="flex items-center whitespace-nowrap">
-                                        <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-4 h-4 mr-1">
-                                        {{ house.bathrooms }} ห้องน้ำ
-                                    </span>
-                                    {% if house.area is not none %}
-                                    <span class="flex items-center whitespace-nowrap">
-                                        <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-4 h-4 mr-1">
-                                        {{ "{:,.0f}".format(house.area | float) }} ตร.ม.
-                                    </span>
-                                    {% endif %}
-                            </div>
+                <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-xl md:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <div class="relative overflow-hidden aspect-[4/3] bg-gray-100">
+                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/house_placeholder.jpg' }}" 
+                             alt="Image of {{ house.title }}" 
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                             loading="lazy">
+                        <div class="absolute top-2 right-2 bg-blue-500/90 text-white text-xs font-bold px-2 py-1 rounded-full backdrop-blur-sm">
+                            {{ house.type_name }}
                         </div>
-                        <div>
-                            <div class="border-t border-gray-200 mt-4 mb-2"></div>
-                            <div class="text-blue-700 font-bold text-lg text-right">
-                                ฿{{ "{:,.0f}".format(house.price | float) }}
+                    </div>
+                    <div class="p-3 sm:p-4 flex flex-col">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-1 line-clamp-2 leading-tight">
+                            {{ house.title }}
+                        </h3>
+                        <div class="flex items-center text-gray-600 text-sm mb-3">
+                            <img src="{{ url_for('static', filename='img/icons/location_icon.png') }}" 
+                                 alt="Location" 
+                                 class="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-green-500">
+                            <span class="ml-1.5 line-clamp-1">{{ house.location or house.project_name or 'N/A' }}</span>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs sm:text-sm text-gray-700">
+                                <span class="flex items-center">
+                                    <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" 
+                                         alt="Bedrooms" 
+                                         class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 opacity-70">
+                                    <span class="whitespace-nowrap">{{ house.bedrooms }} ห้องนอน</span>
+                                </span>
+                                <span class="flex items-center">
+                                    <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" 
+                                         alt="Bathrooms" 
+                                         class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 opacity-70">
+                                    <span class="whitespace-nowrap">{{ house.bathrooms }} ห้องน้ำ</span>
+                                </span>
+                                {% if house.area is not none %}
+                                <span class="flex items-center">
+                                    <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" 
+                                         alt="Area" 
+                                         class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 opacity-70">
+                                    <span class="whitespace-nowrap">{{ "{:,.0f}".format(house.area | float) }} ตร.ม.</span>
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-gray-100">
+                                <div class="text-blue-700 font-bold text-base sm:text-lg text-right">
+                                    ฿{{ "{:,.0f}".format(house.price | float) }}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </a>
-                {% endfor %}
+            {% endfor %}
             </div>
     </div>
 </section>
