@@ -3,11 +3,7 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "pythonVersion": "3.9",
-        "maxLambdaSize": "15mb"
-      }
+      "use": "@vercel/python"
     },
     {
       "src": "static/*",
@@ -27,10 +23,5 @@
       "src": "/(.*)",
       "dest": "/api/index.py"
     }
-  ],
-  "build": {
-    "env": {
-      "PYTHON_VERSION": "3.9"
-    }
-  }
+  ]
 }

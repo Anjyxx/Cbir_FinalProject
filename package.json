@@ -2,12 +2,23 @@
   "name": "baantang",
   "version": "1.0.0",
   "scripts": {
-    "vercel-build": "bash vercel_build.sh"
+    "vercel-build": "node vercel-build.js"
   },
   "dependencies": {
     "vercel": "^28.19.0"
   },
   "engines": {
     "node": ">=14.x"
+  },
+  "vercel": {
+    "builds": [
+      { "src": "api/index.py", "use": "@vercel/python" },
+      { "src": "static/**", "use": "@vercel/static" },
+      { "src": "templates/**", "use": "@vercel/static" }
+    ],
+    "routes": [
+      { "src": "/static/(.*)", "dest": "/static/$1" },
+      { "src": "/(.*)", "dest": "/api/index.py" }
+    ]
   }
 }
