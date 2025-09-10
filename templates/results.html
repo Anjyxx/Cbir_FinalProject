@@ -26,16 +26,16 @@
     <div class="bg-white py-6 border-b border-gray-200">
         <div class="container mx-auto px-4">
             <!-- Search and Filter Bar -->
-            <form method="GET" action="{{ url_for('houses_list') }}" class="flex items-center gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto px-4 py-3">
-                <div class="flex-1 min-w-[200px]">
+            <form method="GET" action="{{ url_for('houses_list') }}" class="flex flex-col sm:flex-row items-stretch gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto p-4 sm:p-3">
+                <div class="w-full sm:flex-1 sm:min-w-[150px]">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ค้นหา</label>
                     <input type="search" name="search" placeholder="ชื่อ, ประเภท, โครงการ..." 
                            value="{{ request.args.get('search', '') }}"
-                           class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all duration-200">
+                           class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all duration-200 text-sm sm:text-base">
                 </div>
                 
                  <!-- House Type Dropdown (modernized) -->
-                 <div class="flex-1 min-w-[120px]" x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
+                 <div class="w-full sm:flex-1 sm:min-w-[120px]" x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ประเภทบ้าน</label>
                     <div class="relative">
                         <input type="hidden" name="house_type" :value="selected">
@@ -59,7 +59,7 @@
                     </div>
                 </div>
                 <!-- Project Dropdown (modernized) -->
-                <div class="flex-1 min-w-[120px]" x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
+                <div class="w-full sm:flex-1 sm:min-w-[120px]" x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">จังหวัดในโครงการ</label>
                     <div class="relative">
                         <input type="hidden" name="project" :value="selected">
@@ -117,7 +117,7 @@
                     </div>
                 </div>
                 
-                <button type="submit" class="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl ml-0 md:ml-2 mt-6 md:mt-0 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 align-middle shadow-md self-end" style="min-width: 90px;">
+                <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 sm:py-2 rounded-xl sm:ml-2 mt-2 sm:mt-6 font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-md">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35" />
@@ -145,11 +145,11 @@
                 <div class="text-gray-500">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</div>
             </div>
         {% else %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {% for house in houses %}
                 <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
                     <div class="relative overflow-hidden">
-                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/house_placeholder.jpg' }}" alt="Image of {{ house.title }}" class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/house_placeholder.jpg' }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
                         <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
                 {% if house.similarity is defined and house.similarity is not none %}
                 <div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">คล้าย {{ (house.similarity * 100) | round(1) }}%</div>
@@ -163,7 +163,7 @@
                                 {{ house.location or house.project_name or 'N/A' }}
                                 <span class="mx-1 text-gray-400"></span>
                             </div>
-                            <div class="mt-4 flex justify-between items-center space-x-2 text-sm text-gray-800  ">
+                            <div class="mt-4 flex flex-wrap justify-between items-center gap-2 text-sm text-gray-800">
                                 <span class="flex items-center whitespace-nowrap">
                                     <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4 mr-1">
                                     {{ house.bedrooms }} ห้องนอน
@@ -182,7 +182,7 @@
                         </div>
                         <div>
                             <div class="border-t border-gray-200 mt-4 mb-2"></div>
-                            <div class="text-blue-700 font-bold text-lg text-right">
+                            <div class="text-blue-700 font-bold text-base sm:text-lg text-right">
                                 ฿{{ "{:,.0f}".format(house.price | float) }}
                             </div>
                         </div>
