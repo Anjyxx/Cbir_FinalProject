@@ -5,6 +5,8 @@ Jinja2==3.1.2
 
 # Database
 PyMySQL==1.1.0
+Flask-MySQL==1.5.2
+Flask-SQLAlchemy==3.0.5
 
 # Environment
 python-dotenv==1.0.0
@@ -16,12 +18,8 @@ email-validator==2.0.0.post2
 
 # Web Server
 gunicorn==21.2.0
-psycopg2-binary==2.9.9
-Flask-SQLAlchemy==3.0.5
-Flask-MySQL==1.5.2
-cryptography==41.0.7
-gevent==23.7.0
-vercel==28.19.0
-python-multipart==0.0.6
 itsdangerous==2.1.2
 click==8.1.7
+python-multipart==0.0.6
+vercel==28.19.0
+cryptography==41.0.7

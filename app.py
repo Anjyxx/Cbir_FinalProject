@@ -5328,6 +5328,17 @@ def create_house_views_table():
     except Exception as e:
         return f"Error creating house_views table: {str(e)}"
 
+# Apply ProxyFix middleware when running on Vercel
+if __name__ != "__main__":
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1,  # Number of trusted proxies
+        x_proto=1,
+        x_host=1,
+        x_prefix=1
+    )
+
 if __name__ == '__main__':
     # Call the font setup function inside the main block
     setup_thai_font()
