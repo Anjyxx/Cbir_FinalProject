@@ -1,38 +1,49 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Vercel build script..."
+echo "🚀 Starting Vercel build process..."
+
+# Set Python version explicitly
+PYTHON_VERSION=3.12
+PYTHON=python${PYTHON_VERSION}
+PIP=pip${PYTHON_VERSION}
+
+echo "🔍 Using Python: $($PYTHON --version 2>&1) at $(which $PYTHON)"
+
+# Set environment variables
+export PYTHONUNBUFFERED=1
+export PYTHONDONTWRITEBYTECODE=1
+export PIP_NO_CACHE_DIR=off
+
+# Ensure pip is installed
+if ! command -v $PIP &> /dev/null; then
+    echo "📦 Installing pip for Python $PYTHON_VERSION..."
+    curl -sS https://bootstrap.pypa.io/get-pip.py | $PYTHON
+fi
+
+# Upgrade pip
+echo "🔄 Upgrading pip..."
+$PYTHON -m pip install --upgrade pip
 
 # Create api directory if it doesn't exist
 mkdir -p api
 
-# Create the Vercel serverless function
-echo 'from app import app as application' > api/index.py
-
-# Install system dependencies
-echo "🔧 Installing system dependencies..."
-apt-get update && apt-get install -y \
-    python3-pip \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip
-echo "📦 Upgrading pip..."
-python3 -m pip install --upgrade pip
-
-# Install PyTorch with CPU-only version
-echo "🧠 Installing PyTorch..."
-python3 -m pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
-
-# Install requirements from api/requirements.txt if it exists
-if [ -f "api/requirements.txt" ]; then
-    echo "📦 Installing requirements from api/requirements.txt..."
-    python3 -m pip install -r api/requirements.txt --no-cache-dir
+# Create app.py in api directory if it doesn't exist
+if [ ! -f "api/app.py" ]; then
+    echo "📝 Creating app.py for Vercel..."
+    echo 'from app import app as application' > api/app.py
 fi
 
-# Install root requirements.txt if it exists
+# Install requirements from root directory
 if [ -f "requirements.txt" ]; then
-    echo "📦 Installing root requirements..."
+    echo "📦 Installing requirements from root..."
+    $PYTHON -m pip install -r requirements.txt --no-cache-dir
+fi
+
+# Install requirements from api directory
+if [ -f "api/requirements.txt" ]; then
+    echo "📦 Installing requirements from api/requirements.txt..."
+    $PYTHON -m pip install -r api/requirements.txt --no-cache-dir
     python3 -m pip install -r requirements.txt --no-cache-dir
 fi
 
