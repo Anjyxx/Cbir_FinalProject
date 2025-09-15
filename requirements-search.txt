@@ -1,0 +1,34 @@
+# Core requirements
+Flask>=2.0.1
+Flask-MySQLdb>=1.0.1
+Flask-WTF>=1.0.0
+Flask-Login>=0.5.0
+python-dotenv>=0.19.0
+PyMySQL>=1.0.2
+jieba>=0.42.1  # For Thai word segmentation
+numpy>=1.21.0  # For numerical operations
+pandas>=1.3.0  # For data manipulation and analysis
+scikit-learn>=1.0.0  # For machine learning and similarity calculations
+
+# For image processing (if using CBIR)
+opencv-python-headless>=4.5.0
+Pillow>=8.3.1
+
+# For API documentation (optional)
+flask-restx>=0.5.1
+
+# For testing
+pytest>=6.2.5
+pytest-cov>=2.12.1
+
+# For development
+black>=21.12b0
+flake8>=4.0.1
+mypy>=0.930
+
+# For performance monitoring
+blinker>=1.4
+
+# For async tasks (optional)
+celery>=5.2.0
+redis>=4.0.0

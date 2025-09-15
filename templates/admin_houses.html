@@ -170,14 +170,6 @@
                                         แก้ไข
                                     </a>
                                     
-                                    <form action="{{ url_for('admin_delete_house', id=house.id) }}" method="POST" class="inline">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" onclick="return confirm('Are you sure?')" class="text-red-600 hover:text-red-900">
-                                            <img src="/static/img/icons/delete.png" alt="Delete Icon" class="inline w-4 h-4 mr-1">
-                                            ลบ
-                                        </button>
-                                    </form>
-                                    
                                 </td>
                             </tr>
                             {% endfor %}

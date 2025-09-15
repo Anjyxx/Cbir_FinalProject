@@ -486,7 +486,7 @@ def admin_dashboard():
             total_houses_query += " AND p_id = %s"
             total_houses_params.append(selected_project)
         if selected_feature:
-            total_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            total_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             total_houses_params.append(selected_feature)
         cur.execute(total_houses_query, total_houses_params)
         total_houses = cur.fetchone()[0]
@@ -615,7 +615,7 @@ def admin_dashboard():
             houses_by_type_query += " AND ht.t_id = %s"
             houses_by_type_params.append(selected_type)
         if selected_feature:
-            houses_by_type_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_by_type_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_by_type_params.append(selected_feature)
 
         houses_by_type_query += " GROUP BY ht.t_name"
@@ -640,7 +640,7 @@ def admin_dashboard():
             houses_by_project_query += " AND p.p_id = %s"
             houses_by_project_params.append(selected_project)
         if selected_feature:
-            houses_by_project_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_by_project_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_by_project_params.append(selected_feature)
 
         houses_by_project_query += " GROUP BY p.p_name"
@@ -649,15 +649,15 @@ def admin_dashboard():
         houses_by_project_data = serialize_data_for_json(houses_by_project_data)
 
         # Get filter options
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type")
         house_types = dict_fetchall(cur)
         house_types = serialize_data_for_json(house_types)
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
+        cur.execute("SELECT p_id as id, p_name as name FROM project")
         projects = dict_fetchall(cur)
         projects = serialize_data_for_json(projects)
 
         # Get house features for filter
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE is_available = TRUE")
         house_features = dict_fetchall(cur)
         house_features = serialize_data_for_json(house_features)
 
@@ -671,7 +671,7 @@ def admin_dashboard():
             houses_status_query += " AND p_id = %s"
             houses_status_params.append(selected_project)
         if selected_feature:
-            houses_status_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_status_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_status_params.append(selected_feature)
         houses_status_query += " GROUP BY status"
         cur.execute(houses_status_query, houses_status_params)
@@ -692,7 +692,7 @@ def admin_dashboard():
             houses_bedrooms_query += " AND p_id = %s"
             houses_bedrooms_params.append(selected_project)
         if selected_feature:
-            houses_bedrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_bedrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_bedrooms_params.append(selected_feature)
         houses_bedrooms_query += " GROUP BY bedrooms ORDER BY bedrooms"
         cur.execute(houses_bedrooms_query, houses_bedrooms_params)
@@ -709,7 +709,7 @@ def admin_dashboard():
             houses_bathrooms_query += " AND p_id = %s"
             houses_bathrooms_params.append(selected_project)
         if selected_feature:
-            houses_bathrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_bathrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_bathrooms_params.append(selected_feature)
         houses_bathrooms_query += " GROUP BY bathrooms ORDER BY bathrooms"
         cur.execute(houses_bathrooms_query, houses_bathrooms_params)
@@ -726,7 +726,7 @@ def admin_dashboard():
             houses_living_area_query += " AND p_id = %s"
             houses_living_area_params.append(selected_project)
         if selected_feature:
-            houses_living_area_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_living_area_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_living_area_params.append(selected_feature)
         houses_living_area_query += " GROUP BY living_area ORDER BY living_area"
         cur.execute(houses_living_area_query, houses_living_area_params)
@@ -744,7 +744,7 @@ def admin_dashboard():
             house_additions_query += " AND p_id = %s"
             house_additions_params.append(selected_project)
         if selected_feature:
-            house_additions_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            house_additions_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             house_additions_params.append(selected_feature)
         house_additions_query += " GROUP BY DATE(created_at) ORDER BY DATE(created_at)"
         cur.execute(house_additions_query, house_additions_params)
@@ -935,7 +935,7 @@ def dashboard_pdf():
             total_houses_query += " AND p_id = %s"
             total_houses_params.append(selected_project)
         if selected_feature:
-            total_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            total_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             total_houses_params.append(selected_feature)
         cur.execute(total_houses_query, total_houses_params)
         total_houses = cur.fetchone()[0]
@@ -978,7 +978,7 @@ def dashboard_pdf():
             latest_houses_query += " AND p_id = %s"
             latest_houses_params.append(selected_project)
         if selected_feature:
-            latest_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            latest_houses_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             latest_houses_params.append(selected_feature)
             
         # Apply bedroom filter using helper function
@@ -1007,7 +1007,7 @@ def dashboard_pdf():
             houses_by_type_query += " AND ht.t_id = %s"
             houses_by_type_params.append(selected_type)
         if selected_feature:
-            houses_by_type_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_by_type_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_by_type_params.append(selected_feature)
 
         houses_by_type_query += " GROUP BY ht.t_name"
@@ -1032,7 +1032,7 @@ def dashboard_pdf():
             houses_by_project_query += " AND p.p_id = %s"
             houses_by_project_params.append(selected_project)
         if selected_feature:
-            houses_by_project_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            houses_by_project_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             houses_by_project_params.append(selected_feature)
 
         houses_by_project_query += " GROUP BY p.p_name"
@@ -1050,7 +1050,7 @@ def dashboard_pdf():
             status_query += " AND p_id = %s"
             status_params.append(selected_project)
         if selected_feature:
-            status_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            status_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             status_params.append(selected_feature)
             
         # Apply bedroom filter using helper function
@@ -1071,7 +1071,7 @@ def dashboard_pdf():
             bedrooms_query += " AND p_id = %s"
             bedrooms_params.append(selected_project)
         if selected_feature:
-            bedrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            bedrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             bedrooms_params.append(selected_feature)
         if selected_bedrooms:
             if selected_bedrooms == '5':
@@ -1094,7 +1094,7 @@ def dashboard_pdf():
             bathrooms_query += " AND p_id = %s"
             bathrooms_params.append(selected_project)
         if selected_feature:
-            bathrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            bathrooms_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             bathrooms_params.append(selected_feature)
         if selected_bedrooms:
             if selected_bedrooms == '5':
@@ -1117,7 +1117,7 @@ def dashboard_pdf():
             living_area_query += " AND p_id = %s"
             living_area_params.append(selected_project)
         if selected_feature:
-            living_area_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            living_area_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             living_area_params.append(selected_feature)
         if selected_bedrooms:
             if selected_bedrooms == '5':
@@ -1144,7 +1144,7 @@ def dashboard_pdf():
             additions_query += " AND p_id = %s"
             additions_params.append(selected_project)
         if selected_feature:
-            additions_query += " AND h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            additions_query += " AND h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             additions_params.append(selected_feature)
         if selected_bedrooms:
             if selected_bedrooms == '5':
@@ -1461,7 +1461,7 @@ def admin_houses():
         # Get features for each house
         for house in houses:
             cur.execute("""
-                SELECT f_name FROM house_features WHERE f_id = %s
+                SELECT f_name FROM house_features WHERE is_available = TRUE AND f_id = %s
             """, (house['f_id'],))
             feature = dict_fetchone(cur)
             house['feature'] = feature['f_name'] if feature else None
@@ -1610,7 +1610,7 @@ def admin_add_house():
         cur.execute("SELECT p_id, p_name FROM project ORDER BY p_name")
         projects = dict_fetchall(cur)
         
-        cur.execute("SELECT f_id, f_name FROM house_features ORDER BY f_name")
+        cur.execute("SELECT f_id, f_name FROM house_features WHERE is_available = TRUE ORDER BY f_name")
         house_features = dict_fetchall(cur)
         
         cur.close()
@@ -1713,7 +1713,7 @@ def admin_edit_house(id):
         cur.execute("SELECT p_id, p_name FROM project ORDER BY p_name")
         projects = dict_fetchall(cur)
 
-        cur.execute("SELECT f_id, f_name FROM house_features ORDER BY f_name")
+        cur.execute("SELECT f_id, f_name FROM house_features WHERE is_available = TRUE ORDER BY f_name")
         house_features = dict_fetchall(cur)
         
         cur.close()
@@ -1732,6 +1732,41 @@ def admin_edit_house(id):
         cur.close()
 
 # --- AJAX routes for image management ---
+# Route to delete an image
+@app.route('/admin/houses/delete/<int:id>', methods=['POST'])
+@login_required
+def admin_delete_house(id):
+    if not current_user.is_authenticated or current_user.role != 'admin':
+        flash('คุณไม่มีสิทธิ์เข้าถึงหน้านี้', 'error')
+        return redirect(url_for('admin_login'))
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Get house details for logging
+        cursor.execute('SELECT * FROM houses WHERE is_available = TRUE AND id = %s', (id,))
+        house = cursor.fetchone()
+        
+        if not house:
+            flash('ไม่พบข้อมูลบ้านที่ต้องการลบ', 'error')
+            return redirect(url_for('admin_houses'))
+            
+        # Mark the house as unavailable instead of deleting
+        cursor.execute('UPDATE houses SET is_available = FALSE WHERE id = %s', (id,))
+        mysql.connection.commit()
+        
+        flash('ปรับสถานะบ้านเป็นไม่พร้อมจำหน่ายเรียบร้อยแล้ว', 'success')
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Error updating house status: {str(e)}")
+        flash(f'เกิดข้อผิดพลาดในการปรับสถานะบ้าน: {str(e)}', 'error')
+        return redirect(url_for('admin_houses'))
+    finally:
+        cursor.close()
+    
+    return redirect(url_for('admin_houses'))
+
 @app.route('/admin/delete-house-image/<int:house_id>/<int:image_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -1799,6 +1834,32 @@ def set_main_image(house_id, image_id):
     finally:
         cur.close()
 
+@app.route('/admin/house-types/delete/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_house_type(id):
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # Check if the house type exists
+        cur.execute('SELECT * FROM house_types WHERE is_available = TRUE AND id = %s', (id,))
+        house_type = cur.fetchone()
+        
+        if not house_type:
+            flash('ไม่พบประเภทบ้านที่ต้องการลบ', 'error')
+            return redirect(url_for('admin_house_types'))
+            
+        # Mark the house type as unavailable instead of deleting
+        cur.execute('UPDATE house_types SET is_available = FALSE WHERE id = %s', (id,))
+        mysql.connection.commit()
+        
+        flash('ปรับสถานะประเภทบ้านเป็นไม่พร้อมใช้งานเรียบร้อยแล้ว', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'เกิดข้อผิดพลาดในการปรับสถานะประเภทบ้าน: {str(e)}', 'error')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('admin_house_types'))
 
 
 
@@ -1854,8 +1915,7 @@ def admin_projects():
                 address,
                 COALESCE(p_image, 'default_project.jpg') as p_image,
                 created_at,
-                COALESCE(updated_at, created_at) as updated_at,
-                status
+                COALESCE(updated_at, created_at) as updated_at
             FROM project
         """
         
@@ -1885,15 +1945,13 @@ def admin_projects():
                 'address': row.get('address', ''),
                 'p_image': row.get('p_image', 'default_project.jpg'),
                 'created_at': row.get('created_at'),
-                'updated_at': row.get('updated_at', row.get('created_at')),
-                'status': row.get('status', 'active')
+                'updated_at': row.get('updated_at', row.get('created_at'))
             })
         
         print("\n=== QUERY RESULTS ===")
         print(f"Number of projects found: {len(projects)}")
         if projects:
             print("First project sample:", projects[0])
-            print("Status field in first project:", projects[0].get('status', 'NOT_FOUND'))
         
         return render_template('admin_projects.html', projects=projects, search=search)
         
@@ -1921,7 +1979,6 @@ def admin_add_project():
         p_name = request.form.get('p_name')
         description = request.form.get('description', '')
         address = request.form.get('address', '')
-        status = request.form.get('status', 'active')
         p_image = None
         
         # NOTE: Make sure you have 'from werkzeug.utils import secure_filename'
@@ -1943,10 +2000,10 @@ def admin_add_project():
             cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cur.execute(
                 """
-                INSERT INTO project (p_name, description, address, p_image, status, created_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
+                INSERT INTO project (p_name, description, address, p_image, created_at)
+                VALUES (%s, %s, %s, %s, NOW())
                 """,
-                (p_name, description, address, p_image, status)
+                (p_name, description, address, p_image)
             )
             mysql.connection.commit()
             flash('Project added successfully!', 'success')
@@ -1993,7 +2050,6 @@ def admin_edit_project(project_id):
         p_name = request.form.get('p_name')
         description = request.form.get('description', '')
         address = request.form.get('address', '')
-        status = request.form.get('status', 'active')
         
         # Keep existing image by default
         p_image = project_data.get('p_image')
@@ -2060,9 +2116,6 @@ def admin_edit_project(project_id):
             update_fields.append("address = %s")
             params.append(address)
             
-            update_fields.append("status = %s")
-            params.append(status)
-            
             update_fields.append("p_image = %s")
             params.append(p_image)
             
@@ -2105,6 +2158,45 @@ def admin_edit_project(project_id):
     return render_template('admin_edit_project.html', project=project_data)
 
 # --- Corrected admin_delete_project route ---
+@app.route('/admin/projects/delete/<project_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_project(project_id):
+        
+    # Convert project_id to string to match database type
+    project_id_str = str(project_id)
+    
+    # Check if user is admin
+    if session.get('role') != 'admin':
+        flash('You do not have permission to delete projects.', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Check if the request has a CSRF token
+    if not request.form.get('csrf_token') or request.form.get('csrf_token') != session.get('csrf_token'):
+        flash('Invalid CSRF token. Please try again.', 'error')
+        return redirect(url_for('admin_projects'))
+    
+    cur = None
+    try:
+        # First, get the project data to check if it exists and get the image filename
+        project_data = get_project_data(project_id_str)
+        if not project_data:
+            flash('Project not found.', 'error')
+            return redirect(url_for('admin_projects'))
+        
+        # Mark the project as unavailable instead of deleting
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cur.execute('UPDATE project SET is_available = FALSE WHERE p_id = %s', (project_id_str,))
+        mysql.connection.commit()
+        
+        flash('Project marked as unavailable successfully!', 'success')
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'Error marking project as unavailable: {str(e)}', 'error')
+    finally:
+        if 'cur' in locals():
+            cur.close()
     
     return redirect(url_for('admin_projects'))
 
@@ -2116,7 +2208,7 @@ def admin_house_types():
     search = request.args.get('search', '').strip()
     cur = mysql.connection.cursor()
     try:
-        query = "SELECT t_id as id, t_name as name, description, created_at, status FROM house_type"
+        query = "SELECT t_id as id, t_name as name, description, created_at FROM house_type"
         params = []
         if search:
             query += " WHERE t_name LIKE %s"
@@ -2139,7 +2231,6 @@ def admin_add_house_type():
     if request.method == 'POST':
         t_name = request.form.get('t_name')
         description = request.form.get('description')
-        status = request.form.get('status', 'active')
         t_image = request.files.get('t_image')
 
         if not t_name:
@@ -2154,8 +2245,8 @@ def admin_add_house_type():
 
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         try:
-            cur.execute("INSERT INTO house_type (t_name, description, t_image, status) VALUES (%s, %s, %s, %s)", 
-                       (t_name, description, image_filename, status))
+            cur.execute("INSERT INTO house_type (t_name, description, t_image) VALUES (%s, %s, %s)", 
+                       (t_name, description, image_filename))
             mysql.connection.commit()
             flash('House type added successfully!', 'success')
             return redirect(url_for('admin_house_types'))
@@ -2179,7 +2270,6 @@ def admin_edit_house_type(id):
         try:
             t_name = request.form.get('t_name')
             description = request.form.get('description')
-            status = request.form.get('status', 'active')
             t_image = request.files.get('t_image')
 
             if not t_name:
@@ -2199,20 +2289,20 @@ def admin_edit_house_type(id):
                 cur.execute(
                     """
                     UPDATE house_type 
-                    SET t_name = %s, description = %s, t_image = %s, status = %s, updated_at = NOW()
+                    SET t_name = %s, description = %s, t_image = %s, updated_at = NOW()
                     WHERE t_id = %s
                     """,
-                    (t_name, description, image_filename, status, id)
+                    (t_name, description, image_filename, id)
                 )
             else:
                 # Update without changing the image
                 cur.execute(
                     """
                     UPDATE house_type 
-                    SET t_name = %s, description = %s, status = %s, updated_at = NOW()
+                    SET t_name = %s, description = %s, updated_at = NOW()
                     WHERE t_id = %s
                     """,
-                    (t_name, description, status, id)
+                    (t_name, description, id)
                 )
             
             if cur.rowcount == 0:
@@ -2277,7 +2367,7 @@ def admin_house_features():
     search = request.args.get('search', '').strip()
     cur = mysql.connection.cursor()
     try:
-        query = "SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image, created_at, status FROM house_features"
+        query = "SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image, created_at FROM house_features WHERE is_available = TRUE"
         params = []
         if search:
             query += " WHERE f_name LIKE %s"
@@ -2301,7 +2391,6 @@ def admin_add_house_feature():
     if request.method == 'POST':
         f_name = request.form.get('f_name')
         f_description = request.form.get('f_description')
-        status = request.form.get('status', 'active')
         f_image = request.files.get('f_image')
         admin_id = session.get('admin_id') # Get admin ID
 
@@ -2317,8 +2406,8 @@ def admin_add_house_feature():
             f_image.save(image_path)
 
         try:
-            cur.execute("INSERT INTO house_features (f_name, f_description, f_image, a_id, status) VALUES (%s, %s, %s, %s, %s)", 
-                        (f_name, f_description, image_filename, admin_id, status))
+            cur.execute("INSERT INTO house_features (f_name, f_description, f_image, a_id) VALUES (%s, %s, %s, %s)", 
+                        (f_name, f_description, image_filename, admin_id))
             mysql.connection.commit()
             flash('House feature added successfully!', 'success')
             return redirect(url_for('admin_house_features'))
@@ -2341,13 +2430,12 @@ def admin_edit_house_feature(id):
     if request.method == 'POST':
         f_name = request.form.get('f_name')
         f_description = request.form.get('f_description')
-        status = request.form.get('status', 'active')
         f_image = request.files.get('f_image')
         admin_id = session.get('admin_id') # Get admin ID
             
         if not f_name:
             flash('Feature name is required.', 'error')
-            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename, created_at FROM house_features WHERE f_id = %s", (id,))
+            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename, created_at FROM house_features WHERE is_available = TRUE AND f_id = %s", (id,))
             feature_data = dict_fetchone(cur)
             cur.close()
             return render_template('admin_edit_house_feature.html', feature=feature_data)
@@ -2360,25 +2448,25 @@ def admin_edit_house_feature(id):
             f_image.save(image_path)
         else:
             # Retain existing image if no new image is uploaded
-            cur.execute("SELECT f_image FROM house_features WHERE f_id = %s", (id,))
+            cur.execute("SELECT f_image FROM house_features WHERE is_available = TRUE AND f_id = %s", (id,))
             existing_image = cur.fetchone()
             if existing_image:
                 image_filename = existing_image[0]
 
         try:
             if image_filename:
-                cur.execute("UPDATE house_features SET f_name = %s, f_description = %s, f_image = %s, a_id = %s, status = %s WHERE f_id = %s", 
-                            (f_name, f_description, image_filename, admin_id, status, id))
+                cur.execute("UPDATE house_features SET f_name = %s, f_description = %s, f_image = %s, a_id = %s WHERE f_id = %s", 
+                            (f_name, f_description, image_filename, admin_id, id))
             else:
-                cur.execute("UPDATE house_features SET f_name = %s, f_description = %s, a_id = %s, status = %s WHERE f_id = %s", 
-                            (f_name, f_description, admin_id, status, id))
+                cur.execute("UPDATE house_features SET f_name = %s, f_description = %s, a_id = %s WHERE f_id = %s", 
+                            (f_name, f_description, admin_id, id))
             mysql.connection.commit()
             flash('House feature updated successfully!', 'success')
             return redirect(url_for('admin_house_features'))
         except Exception as e:
             mysql.connection.rollback()
             flash('Error updating house feature: {}'.format(str(e)), 'error')
-            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename FROM house_features WHERE f_id = %s", (id,))
+            cur.execute("SELECT f_id as id, f_name as name, f_description as description, COALESCE(f_image, 'house_feature_placeholder.jpg') as image_filename FROM house_features WHERE is_available = TRUE AND f_id = %s", (id,))
             feature_data = dict_fetchone(cur)
             cur.close()
             return render_template('admin_edit_house_feature.html', feature=feature_data)
@@ -2413,6 +2501,32 @@ def admin_edit_house_feature(id):
 
     return render_template('admin_edit_house_feature.html', feature=feature_data)
 
+@app.route('/admin/delete-house-feature/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_house_feature(id):
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # Check if the feature exists
+        cur.execute('SELECT * FROM house_features WHERE is_available = TRUE AND f_id = %s', (id,))
+        feature = cur.fetchone()
+        
+        if not feature:
+            flash('ไม่พบฟีเจอร์ที่ต้องการลบ', 'error')
+            return redirect(url_for('admin_house_features'))
+            
+        # Mark the feature as unavailable instead of deleting
+        cur.execute('UPDATE house_features SET is_available = FALSE WHERE f_id = %s', (id,))
+        mysql.connection.commit()
+        
+        flash('ปรับสถานะฟีเจอร์เป็นไม่พร้อมใช้งานเรียบร้อยแล้ว', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'เกิดข้อผิดพลาดในการปรับสถานะฟีเจอร์: {str(e)}', 'error')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('admin_house_features'))
 
 @app.route('/')
 def index():
@@ -2433,7 +2547,7 @@ def index():
             FROM house h
             LEFT JOIN house_type t ON h.t_id = t.t_id
             LEFT JOIN project p ON h.p_id = p.p_id
-            WHERE h.status NOT IN ('inactive', 'sold')
+            WHERE 1=1
         """
         house_params = []
 
@@ -2444,7 +2558,7 @@ def index():
             house_query += " AND h.p_id = %s"
             house_params.append(selected_project)
         if selected_feature:
-            house_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
+            house_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE is_available = TRUE AND f_id = %s)"
             house_params.append(selected_feature)
         if search_query:
             sq = f"%{search_query}%"
@@ -2463,15 +2577,15 @@ def index():
         houses = dict_fetchall(cur)
 
         # Fetch all house types for the dropdown
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type")
         house_types = dict_fetchall(cur)
 
         # Fetch all projects for the dropdown
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
+        cur.execute("SELECT p_id as id, p_name as name FROM project")
         projects = dict_fetchall(cur)
         
         # Fetch all house features for the dropdown
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE is_available = TRUE")
         house_features = dict_fetchall(cur)
 
         # Attach main_image_url to each house
@@ -2485,7 +2599,6 @@ def index():
                 house['main_image_url'] = '/' + url
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
-                row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
                     if not url.startswith('static/uploads/'):
@@ -3109,7 +3222,7 @@ def admin_delete_user(id):
 @app.route('/house-types')
 def house_types_page():
     cur = mysql.connection.cursor()
-    cur.execute("SELECT t_id as id, t_name as name, COALESCE(t_image, 'house_type_placeholder.jpg') as image FROM house_type WHERE status = 'active'")
+    cur.execute("SELECT t_id as id, t_name as name, COALESCE(t_image, 'house_type_placeholder.jpg') as image FROM house_type")
     house_types = dict_fetchall(cur)
     cur.close()
     return render_template('house_types.html', house_types=house_types)
@@ -3126,7 +3239,7 @@ def houses_by_type(type_id):
             FROM house h
             LEFT JOIN house_type t ON h.t_id = t.t_id
             LEFT JOIN project p ON h.p_id = p.p_id
-            WHERE h.t_id = %s AND h.status NOT IN ('inactive', 'sold')
+            WHERE h.t_id = %s
         """, (type_id,))
         houses = dict_fetchall(cur)
         # Attach main_image_url and gallery_images to each house
@@ -3158,20 +3271,11 @@ def houses_by_type(type_id):
                 house['gallery_images'].append('/' + url)
         
         # Fetch all house types and projects for the dropdowns
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type")
         house_types = dict_fetchall(cur)
         
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
+        cur.execute("SELECT p_id as id, p_name as name FROM project")
         projects = dict_fetchall(cur)
-        
-        # Fetch house features for the dropdown
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
-        features = dict_fetchall(cur)
-        
-        # Calculate pagination variables (since this is a type-specific page, no pagination needed)
-        total_houses = len(houses)
-        total_pages = 1
-        current_page = 1
         
         return render_template(
             'houses_list.html', 
@@ -3179,12 +3283,8 @@ def houses_by_type(type_id):
             title="บ้านตามประเภท",
             house_types=house_types,
             projects=projects,
-            features=features,
             request=request,
-            selected_type=type_id,
-            total_pages=total_pages,
-            current_page=current_page,
-            total_houses=total_houses
+            selected_type=type_id
         )
     finally:
         cur.close()
@@ -3192,7 +3292,7 @@ def houses_by_type(type_id):
 @app.route('/projects')
 def projects_page():
     cur = mysql.connection.cursor()
-    cur.execute("SELECT p_id as id, p_name as name, COALESCE(p_image, 'project_placeholder.jpg') as image FROM project WHERE status = 'active'")
+    cur.execute("SELECT p_id as id, p_name as name, COALESCE(p_image, 'project_placeholder.jpg') as image FROM project")
     projects = dict_fetchall(cur)
     cur.close()
     return render_template('projects.html', projects=projects)
@@ -3209,7 +3309,7 @@ def houses_by_project(project_id):
             FROM house h
             LEFT JOIN house_type t ON h.t_id = t.t_id
             LEFT JOIN project p ON h.p_id = p.p_id
-            WHERE h.p_id = %s AND h.status NOT IN ('inactive', 'sold')
+            WHERE h.p_id = %s
         """, (project_id,))
         houses = dict_fetchall(cur)
         # Attach main_image_url and gallery_images to each house
@@ -3241,20 +3341,11 @@ def houses_by_project(project_id):
                 house['gallery_images'].append('/' + url)
         
         # Fetch all house types and projects for the dropdowns
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type")
         house_types = dict_fetchall(cur)
         
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
+        cur.execute("SELECT p_id as id, p_name as name FROM project")
         projects = dict_fetchall(cur)
-        
-        # Fetch house features for the dropdown
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
-        features = dict_fetchall(cur)
-        
-        # Calculate pagination variables (since this is a project-specific page, no pagination needed)
-        total_houses = len(houses)
-        total_pages = 1
-        current_page = 1
         
         return render_template(
             'houses_list.html', 
@@ -3262,12 +3353,8 @@ def houses_by_project(project_id):
             title="บ้านในโครงการ",
             house_types=house_types,
             projects=projects,
-            features=features,
             request=request,
-            selected_project=project_id,
-            total_pages=total_pages,
-            current_page=current_page,
-            total_houses=total_houses
+            selected_project=project_id
         )
     finally:
         cur.close()
@@ -3295,32 +3382,11 @@ def houses_by_feature(feature_id):
     cur = mysql.connection.cursor()
     try:
         # First, get the feature name to determine if it's a bedroom filter
-        cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (feature_id,))
+        cur.execute("SELECT f_name FROM house_features WHERE is_available = TRUE AND f_id = %s", (feature_id,))
         feature = cur.fetchone()
         
         if not feature:
-            # Return empty template with all required variables
-            cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
-            house_types = dict_fetchall(cur)
-            
-            cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
-            projects = dict_fetchall(cur)
-            
-            cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
-            features = dict_fetchall(cur)
-            
-            return render_template(
-                'houses_list.html', 
-                houses=[], 
-                title="ไม่พบลักษณะบ้านที่ระบุ",
-                house_types=house_types,
-                projects=projects,
-                features=features,
-                request=request,
-                total_pages=1,
-                current_page=1,
-                total_houses=0
-            )
+            return render_template('houses_list.html', houses=[], title="ไม่พบลักษณะบ้านที่ระบุ")
             
         f_name = feature[0]
         
@@ -3339,7 +3405,7 @@ def houses_by_feature(feature_id):
                 FROM house h
                 LEFT JOIN house_type t ON h.t_id = t.t_id
                 LEFT JOIN project p ON h.p_id = p.p_id
-                WHERE h.bedrooms = %s AND h.status NOT IN ('inactive', 'sold')
+                WHERE h.bedrooms = %s
             """
             params = (bedroom_count,)
         else:
@@ -3353,7 +3419,7 @@ def houses_by_feature(feature_id):
                 LEFT JOIN house_type t ON h.t_id = t.t_id
                 LEFT JOIN project p ON h.p_id = p.p_id
                 JOIN house_feature_mapping hfm ON h.h_id = hfm.house_id
-                WHERE hfm.feature_id = %s AND h.status NOT IN ('inactive', 'sold')
+                WHERE hfm.feature_id = %s
             """
             params = (feature_id,)
             
@@ -3377,7 +3443,7 @@ def houses_by_feature(feature_id):
                         url = 'static/uploads/' + url.split('/')[-1]
                     house['main_image_url'] = '/' + url
                 else:
-                    house['main_image_url'] = '/static/img/OIP.jpg'
+                    house['main_image_url'] = None
             cur.execute("SELECT image_url FROM house_images WHERE house_id = %s", (house['id'],))
             gallery_rows = cur.fetchall()
             house['gallery_images'] = []
@@ -3386,34 +3452,7 @@ def houses_by_feature(feature_id):
                 if not url.startswith('static/uploads/'):
                     url = 'static/uploads/' + url.split('/')[-1]
                 house['gallery_images'].append('/' + url)
-        # Fetch all house types, projects, and features for the dropdowns
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
-        house_types = dict_fetchall(cur)
-        
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active'")
-        projects = dict_fetchall(cur)
-        
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active'")
-        features = dict_fetchall(cur)
-        
-        # Calculate pagination variables (since this is a feature-specific page, no pagination needed)
-        total_houses = len(houses)
-        total_pages = 1
-        current_page = 1
-        
-        return render_template(
-            'houses_list.html', 
-            houses=houses, 
-            title="บ้านตามลักษณะ",
-            house_types=house_types,
-            projects=projects,
-            features=features,
-            request=request,
-            selected_feature=feature_id,
-            total_pages=total_pages,
-            current_page=current_page,
-            total_houses=total_houses
-        )
+        return render_template('houses_list.html', houses=houses, title="บ้านตามลักษณะ")
     finally:
         cur.close()
 
@@ -3500,7 +3539,7 @@ def houses_list():
         cur.execute("""
             SELECT p_id as id, p_name as name 
             FROM project 
-            WHERE p_name IS NOT NULL AND p_name != '' AND status = 'active'
+            WHERE p_name IS NOT NULL AND p_name != ''
             ORDER BY p_name
         """)
         projects = []
@@ -3515,7 +3554,7 @@ def houses_list():
         cur.execute("""
             SELECT t_id as id, t_name as name 
             FROM house_type 
-            WHERE t_name IS NOT NULL AND t_name != '' AND status = 'active'
+            WHERE t_name IS NOT NULL AND t_name != ''
             ORDER BY t_name
         """)
         house_types = []
@@ -3530,7 +3569,7 @@ def houses_list():
         cur.execute("""
             SELECT f_id as id, f_name as name 
             FROM house_features 
-            WHERE f_name IS NOT NULL AND f_name != '' AND status = 'active'
+            WHERE f_name IS NOT NULL AND f_name != ''
             ORDER BY f_name
         """)
         features = []
@@ -3575,7 +3614,7 @@ def houses_list():
                 h.living_area as area, 
                 h.t_id, 
                 h.p_id,
-                COALESCE(hi.image_url, '') as main_image_url,
+                COALESCE(hi.image_url, '') as image,
                 t.t_name as type_name, 
                 p.p_name as project_name
             FROM house h
@@ -3583,16 +3622,10 @@ def houses_list():
             LEFT JOIN project p ON h.p_id = p.p_id
             LEFT JOIN (
                 SELECT house_id, image_url 
-                FROM house_images hi1
-                WHERE hi1.is_main = 1
-                AND hi1.id = (
-                    SELECT MIN(hi2.id)
-                    FROM house_images hi2
-                    WHERE hi2.house_id = hi1.house_id
-                    AND hi2.is_main = 1
-                )
+                FROM house_images 
+                WHERE is_main = 1
             ) hi ON h.h_id = hi.house_id
-            WHERE h.status NOT IN ('inactive', 'sold')
+            WHERE 1=1
         """
         
         # Build count query
@@ -3601,7 +3634,7 @@ def houses_list():
             FROM house h
             LEFT JOIN house_type t ON h.t_id = t.t_id 
             LEFT JOIN project p ON h.p_id = p.p_id 
-            WHERE h.status NOT IN ('inactive', 'sold')
+            WHERE 1=1
         """
         
         # Initialize query parameters
@@ -3703,7 +3736,7 @@ def houses_list():
             print(f"Updated query_params: {query_params}")
             
             # Debug: Print the feature being filtered
-            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (int(selected_feature),))
+            cur.execute("SELECT f_name FROM house_features WHERE is_available = TRUE AND f_id = %s", (int(selected_feature),))
             feature = cur.fetchone()
             if feature:
                 print(f"Filtering by feature: {feature['f_name']}")
@@ -3822,9 +3855,9 @@ def houses_list():
                 
         # Process house data to ensure proper image URLs
         for house in houses:
-            if house.get('main_image_url'):
+            if house.get('image'):
                 # Clean up the image path
-                img_path = house['main_image_url'].lstrip('/')
+                img_path = house['image'].lstrip('/')
                 
                 # If the path is already a full URL, use it directly
                 if img_path.startswith(('http://', 'https://')):
@@ -3835,7 +3868,7 @@ def houses_list():
                     os.path.join('static', 'uploads', os.path.basename(img_path)),
                     img_path,
                     os.path.join('static', 'uploads', img_path),
-                    os.path.join('static', 'img', 'OIP.jpg')  # Fallback to placeholder
+                    os.path.join('static', 'img', 'house_placeholder.jpg')  # Fallback to placeholder
                 ]
                 
                 # Find the first valid path that exists
@@ -3848,16 +3881,16 @@ def houses_list():
                 
                 if valid_path:
                     # Convert to URL path
-                    house['main_image_url'] = '/' + valid_path.replace('\\', '/').lstrip('/')
+                    house['image'] = '/' + valid_path.replace('\\', '/').lstrip('/')
                 else:
                     # Use default image if no valid path found
-                    house['main_image_url'] = '/static/img/OIP.jpg'
+                    house['image'] = '/static/img/house_placeholder.jpg'
             else:
                 # Default image if none is set
-                house['main_image_url'] = '/static/img/OIP.jpg'
+                house['image'] = '/static/img/house_placeholder.jpg'
                 
             # Ensure the path is URL-friendly and doesn't have double slashes
-            house['main_image_url'] = '/' + house['main_image_url'].lstrip('/').replace('\\', '/').replace('//', '/')
+            house['image'] = '/' + house['image'].lstrip('/').replace('\\', '/').replace('//', '/')
         
         template_vars['houses'] = houses
         
@@ -4391,15 +4424,15 @@ def admin_reports():
     
     try:
         # Get all projects
-        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+        cur.execute("SELECT p_id as id, p_name as name FROM project ORDER BY p_name")
         projects = cur.fetchall()
         
         # Get all house types
-        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type ORDER BY t_name")
         house_types = cur.fetchall()
         
         # Get all house features
-        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY name")
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE is_available = TRUE ORDER BY name")
         house_features = cur.fetchall()
         
         # Get selected filters from request args

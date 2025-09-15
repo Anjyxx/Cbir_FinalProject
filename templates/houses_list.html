@@ -3,298 +3,649 @@
 {% block title %}ผลการค้นหาบ้าน - BAANTANG{% endblock %}
 
 {% block content %}
-<div class="bg-white-50 min-h-screen">
-    <div class="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        <!-- Sticky Filter/Sort Bar -->
-        <!-- Filter Bar Section -->
-    <div class="bg-white py-6 border-b border-gray-200">
-        <div class="container mx-auto px-4">
-            <!-- Search and Filter Bar -->
-            <form method="GET" action="{{ url_for('houses_list') }}" class="flex flex-col sm:flex-row gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto p-3 sm:p-3">
-                <!-- Search Input -->
-                <div class="w-full sm:flex-1">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ค้นหา</label>
-                    <div class="relative w-full" x-data="{ open: false }">
-                        <input type="search" name="search" placeholder="ชื่อ, ประเภท, โครงการ..." 
-                               value="{{ request.args.get('search', '') }}"
-                               class="w-full px-3 py-2 pr-10 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all duration-200">
-                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+    <!-- Hero Section with Search -->
+    <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white">
+        <div class="container mx-auto px-4 py-12">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">ค้นหาบ้านในฝันของคุณ</h1>
+                <p class="text-xl text-blue-100 mb-8">พบกับบ้านคุณภาพสูงในราคาที่เหมาะสม</p>
                 
-                <!-- House Type Dropdown -->
-                <div class="w-full sm:flex-1" x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ประเภทบ้าน</label>
-                    <div class="relative w-full" x-data="{ open: false }">
-                        <input type="hidden" name="house_type" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative text-sm" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
-                            <template x-if="selected && selected !== options[0].id">
-                                <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </template>
-                            <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        <div x-show="open" @click.away="open = false" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 transform -translate-y-2"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto" 
-                             x-cloak
-                             style="min-width: 200px; left: 0; right: auto;">
-                            <div class="sticky top-0 bg-white z-10 p-2 border-b border-gray-100">
-                                <input type="text" 
-                                       x-model="search" 
-                                       placeholder="ค้นหา..." 
-                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 text-sm"
-                                       @click.stop
-                                       @keydown.escape="open = false"
-                                       @keydown.enter.prevent
-                                       autocomplete="off">
-                            </div>
-                            <div class="py-1">
-                                <template x-for="option in filteredOptions()" :key="option.id">
-                                    <div @click="select(option.id)" 
-                                         class="px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors duration-150 text-sm"
-                                         :class="{'bg-blue-50 text-blue-700 font-medium': selected === option.id}">
-                                        <span class="whitespace-nowrap block" x-text="option.name"></span>
-                                    </div>
-                                </template>
-                                <div x-show="filteredOptions().length === 0" class="px-3 py-2 text-gray-500 text-sm">
-                                    ไม่พบข้อมูล
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Project Dropdown -->
-                <div class="w-full sm:flex-1" x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">จังหวัดในโครงการ</label>
-                    <div class="relative w-full" x-data="{ open: false }">
-                        <input type="hidden" name="project" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative text-sm" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
-                            <template x-if="selected && selected !== options[0].id">
-                                <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </template>
-                            <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        <div x-show="open" @click.away="open = false" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 transform -translate-y-2"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto" 
-                             x-cloak
-                             style="min-width: 200px; left: 0; right: auto;">
-                            <div class="sticky top-0 bg-white z-10 p-2 border-b border-gray-100">
-                                <input type="text" 
-                                       x-model="search" 
-                                       placeholder="ค้นหา..." 
-                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 text-sm"
-                                       @click.stop
-                                       @keydown.escape="open = false"
-                                       @keydown.enter.prevent
-                                       autocomplete="off">
-                            </div>
-                            <div class="py-1">
-                                <template x-for="option in filteredOptions()" :key="option.id">
-                                    <div @click="select(option.id)" 
-                                         class="px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors duration-150 text-sm"
-                                         :class="{'bg-blue-50 text-blue-700 font-medium': selected === option.id}">
-                                        <span class="whitespace-nowrap block" x-text="option.name"></span>
-                                    </div>
-                                </template>
-                                <div x-show="filteredOptions().length === 0" class="px-3 py-2 text-gray-500 text-sm">
-                                    ไม่พบข้อมูล
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Feature Dropdown -->
-                <div class="w-full sm:flex-1" x-data="dropdown({options: [
-                    {id: '', name: 'ค้นหาลักษณะบ้าน'}, 
-                    {id: '2', name: '2 ห้องนอน'}, 
-                    {id: '3', name: '3 ห้องนอน'}, 
-                    {id: '4', name: '4 ห้องนอน'}, 
-                    
-                ], selected: '{{ request.args.get('bedrooms', '') }}', name: 'bedrooms'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
-                    <div class="relative w-full" x-data="{ open: false }">
-                        <input type="hidden" name="bedrooms" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative text-sm" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
-                            <template x-if="selected && selected !== options[0].id">
-                                <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </template>
-                            <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        <div x-show="open" @click.away="open = false" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 transform -translate-y-2"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto" 
-                             x-cloak
-                             style="min-width: 200px; left: 0; right: auto;">
-                            <div class="sticky top-0 bg-white z-10 p-2 border-b border-gray-100">
-                                <input type="text" 
-                                       x-model="search" 
-                                       placeholder="ค้นหา..." 
-                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 text-sm"
-                                       @click.stop
-                                       @keydown.escape="open = false"
-                                       @keydown.enter.prevent
-                                       autocomplete="off">
-                            </div>
-                            <div class="py-1">
-                                <template x-for="option in filteredOptions()" :key="option.id">
-                                    <div @click="select(option.id)" 
-                                         class="px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors duration-150 text-sm"
-                                         :class="{'bg-blue-50 text-blue-700 font-medium': selected === option.id}">
-                                        <span class="whitespace-nowrap block" x-text="option.name"></span>
-                                    </div>
-                                </template>
-                                <div x-show="filteredOptions().length === 0" class="px-3 py-2 text-gray-500 text-sm">
-                                    ไม่พบข้อมูล
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 
-                <div class="w-full sm:w-auto mt-2 sm:mt-6" style="min-width: 90px;">
-                    <button type="submit" class="w-full flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 sm:py-2 rounded-xl font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35" />
-                        </svg>
-                        <span>ค้นหา</span>
-                    </button>
-                </div>
-            </form>
+                <!-- Enhanced Search Bar -->
+                <form method="GET" action="{{ url_for('houses_list') }}" class="bg-white rounded-2xl p-6 shadow-2xl">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <!-- Search Input -->
+                        <div class="lg:col-span-2 xl:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ค้นหาบ้าน</label>
+                            <div class="relative">
+                                <input type="search" name="search" placeholder="ชื่อบ้าน, ประเภท, โครงการ..." 
+                                       value="{{ request.args.get('search', '') }}"
+                                       class="w-full px-4 py-3 pl-12 rounded-xl border-2 border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 font-medium">
+                                <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- House Type Dropdown -->
+                        <div x-data="dropdown({options: [{id: '', name: 'ทุกประเภท'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ประเภทบ้าน</label>
+                            <div class="relative">
+                                <input type="hidden" name="house_type" :value="selected">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="open" @click.away="open = false" 
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2">
+                                        <template x-for="option in options" :key="option.id">
+                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
+                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
+                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
+                                                <span x-text="option.name" class="font-medium"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Project Dropdown -->
+                        <div x-data="dropdown({options: [{id: '', name: 'ทุกโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">จังหวัดในโครงการ</label>
+                            <div class="relative">
+                                <input type="hidden" name="project" :value="selected">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="open" @click.away="open = false" 
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2">
+                                        <template x-for="option in options" :key="option.id">
+                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
+                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
+                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
+                                                <span x-text="option.name" class="font-medium"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- House Features Dropdown -->
+                        <div x-data="dropdown({options: [{id: '', name: 'ทุกลักษณะ'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ลักษณะบ้าน</label>
+                            <div class="relative">
+                                <input type="hidden" name="feature" :value="selected">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="open" @click.away="open = false" 
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2">
+                                        <template x-for="option in options" :key="option.id">
+                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
+                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
+                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
+                                                <span x-text="option.name" class="font-medium"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
+                        <!-- Search Button -->
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">
+                                <span class="flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    ค้นหา
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
+    <!-- Advanced Filters -->
+    <div class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-4">
+                    <!-- Price Filter -->
+                    <div x-data="priceRange()" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                            <span class="text-sm font-medium">ราคา</span>
+                            <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 transform -translate-y-2"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="absolute z-50 mt-2 w-96 bg-white border-2 border-gray-200 rounded-xl shadow-xl p-6">
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">ช่วงราคา (บาท)</h3>
+                                    
+                                    <!-- Price Range Slider -->
+                                    <div class="mb-6">
+                                        <div class="relative">
+                                            <input type="range" 
+                                                   x-model="minPrice" 
+                                                   :min="0" 
+                                                   :max="maxPrice" 
+                                                   @input="updateMinPrice"
+                                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                            <input type="range" 
+                                                   x-model="maxPrice" 
+                                                   :min="minPrice" 
+                                                   :max="10000000" 
+                                                   @input="updateMaxPrice"
+                                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider absolute top-0">
+                                        </div>
+                                        <div class="flex justify-between text-sm text-gray-600 mt-2">
+                                            <span>0</span>
+                                            <span>10,000,000</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Price Input Fields -->
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคาต่ำสุด</label>
+                                            <input type="number" 
+                                                   x-model="minPrice" 
+                                                   @input="updateMinPrice"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคาสูงสุด</label>
+                                            <input type="number" 
+                                                   x-model="maxPrice" 
+                                                   @input="updateMaxPrice"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Hidden inputs for form submission -->
+                                    <input type="hidden" name="min_price" :value="minPrice">
+                                    <input type="hidden" name="max_price" :value="maxPrice">
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex gap-3">
+                                    <button type="button" @click="clearPriceRange()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors duration-200">
+                                        ยกเลิก
+                                    </button>
+                                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                                        บันทึก
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Area Filter -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                            <span class="text-sm font-medium">ขนาดพื้นที่</span>
+                            <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 transform -translate-y-2"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="absolute z-50 mt-2 w-80 bg-white border-2 border-gray-200 rounded-xl shadow-xl p-4">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">ขนาดพื้นที่ (ตร.ม.)</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input type="number" name="min_area" placeholder="พื้นที่ต่ำสุด" 
+                                               value="{{ request.args.get('min_area', '') }}"
+                                               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <input type="number" name="max_area" placeholder="พื้นที่สูงสุด" 
+                                               value="{{ request.args.get('max_area', '') }}"
+                                               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                                    ใช้ตัวกรอง
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sort Options -->
+                    <div x-data="{ open: false, sortBy: '{{ request.args.get('sort', 'newest') }}' }" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
+                            </svg>
+                            <span class="text-sm font-medium">เรียงตาม</span>
+                            <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-0 transform -translate-y-2"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="absolute z-50 mt-2 w-48 bg-white border-2 border-gray-200 rounded-xl shadow-xl">
+                            <div class="py-1">
+                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=newest" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ใหม่ล่าสุด</a>
+                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=price_asc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ราคาต่ำ-สูง</a>
+                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=price_desc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ราคาสูง-ต่ำ</a>
+                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=area_asc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">พื้นที่น้อย-มาก</a>
+                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=area_desc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">พื้นที่มาก-น้อย</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Count -->
+                <div class="text-sm text-gray-600">
+                    <span class="font-semibold">{{ total }}</span> บ้าน
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
         {% if houses|length == 0 %}
+            <!-- No Results State -->
             <div class="flex flex-col items-center justify-center py-24">
-                <img src="https://cdn.jsdelivr.net/gh/feathericons/feather/icons/search.svg" alt="No results" class="w-24 h-24 mb-6 opacity-40">
-                <div class="text-2xl font-bold text-gray-400 mb-2">ไม่พบบ้านที่ตรงกับการค้นหา</div>
-                <div class="text-gray-500">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</div>
+                <div class="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mb-8">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-400 mb-4">ไม่พบบ้านที่ตรงกับการค้นหา</h3>
+                <p class="text-gray-500 text-center max-w-md mb-8">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</p>
+                <a href="{{ url_for('houses_list') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    ดูบ้านทั้งหมด
+                </a>
             </div>
         {% else %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-6 max-w-7xl mx-auto px-4 sm:px-6">
-            {% for house in houses %}
-            <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col h-full">
-                <div class="relative overflow-hidden">
-                    {% set main_img = house.main_image_url if house.main_image_url else (house.gallery_images[0] if house.gallery_images is defined and house.gallery_images|length > 0 else '/static/img/house_placeholder.jpg') %}
-                    <img src="{{ main_img }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-52 md:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
-                    <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
-                </div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <h3 class="text-lg font-bold text-gray-900 mb-1">{{ house.title }}</h3>
-                    <div class="flex items-center gap-2 text-gray-700 text-sm mb-1 flex-wrap">
-                        <img src="{{ url_for('static', filename='img/icons/location_icon.png') }}" alt="Location Icon" class="w-4 h-4 text-green-500">
-                        {{ house.location or house.project_name or 'N/A' }}
-                    </div>
-                    <div class="flex flex-nowrap items-center gap-x-4 text-gray-700 text-sm whitespace-nowrap mb-2">
-                        <span class="flex items-center gap-x-1 whitespace-nowrap">
-                            <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4">
-                            {{ house.bedrooms }} ห้องนอน
-                        </span>
-                        <span class="flex items-center gap-x-1 whitespace-nowrap">
-                            <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-4 h-4">
-                            {{ house.bathrooms }} ห้องน้ำ
-                        </span>
-                        {% if house.area is not none %}
-                        <span class="flex items-center gap-x-1 whitespace-nowrap">
-                            <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-4 h-4">
-                            {{ "{:,.0f}".format(house.area | float) }} ตร.ม.
-                        </span>
+            <!-- House Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for house in houses %}
+                <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1">
+                    <!-- Image Container -->
+                    <div class="relative overflow-hidden">
+                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/OIP.jpg' }}" 
+                             alt="{{ house.title }}" 
+                             class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                             onerror="this.onerror=null; this.src='/static/img/OIP.jpg';">
+                        
+                        <!-- Overlay Gradient -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        <!-- House Type Badge -->
+                        {% if house.type_name %}
+                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                            {{ house.type_name }}
+                        </div>
                         {% endif %}
+                        
+                        <!-- Quick View Button -->
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <a href="{{ url_for('house_detail', house_id=house.id) }}" 
+                               class="bg-white text-gray-800 px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-gray-50 transition-colors duration-200">
+                                ดูรายละเอียด
+                            </a>
+                        </div>
                     </div>
-                    <div class="mt-auto pt-2">
-                        <div class="text-blue-700 font-extrabold text-xl text-right">฿{{ "{:,.0f}".format(house.price | float) }}</div>
+                    
+                    <!-- Content -->
+                    <div class="p-6">
+                        <!-- Title -->
+                        <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                            {{ house.title }}
+                        </h3>
+                        
+                        <!-- Location -->
+                        <div class="flex items-center gap-2 text-gray-600 mb-4">
+                            <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span class="text-sm truncate">{{ house.location or house.project_name or 'N/A' }}</span>
+                        </div>
+                        
+                        <!-- Features -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="text-center">
+                                <div class="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mx-auto mb-2">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"/>
+                                    </svg>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900">{{ house.bedrooms }}</div>
+                                <div class="text-xs text-gray-500">ห้องนอน</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mx-auto mb-2">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M10.5 3L12 2l1.5 1H21v6H3V3h7.5z"/>
+                                    </svg>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900">{{ house.bathrooms }}</div>
+                                <div class="text-xs text-gray-500">ห้องน้ำ</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mx-auto mb-2">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                                    </svg>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900">
+                                    {% if house.area is not none %}
+                                        {{ "{:,.0f}".format(house.area | float) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-gray-500">ตร.ม.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Price -->
+                        <div class="border-t border-gray-100 pt-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-2xl font-bold text-blue-600">
+                                    ฿{{ "{:,.0f}".format(house.price | float) }}
+                                </div>
+                                <a href="{{ url_for('house_detail', house_id=house.id) }}" 
+                                   class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors duration-200">
+                                    ดูรายละเอียด
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </a>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="flex justify-center mt-12">
+                <nav class="flex items-center space-x-2">
+                    {% if current_page > 1 %}
+                    <a href="?{{ request.query_string.decode() | replace('page=' + current_page|string, '') }}&page={{ current_page - 1 }}" 
+                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    {% for page_num in range(1, total_pages + 1) %}
+                        {% if page_num == current_page %}
+                        <span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg">
+                            {{ page_num }}
+                        </span>
+                        {% elif page_num <= 3 or page_num > total_pages - 3 or (page_num >= current_page - 1 and page_num <= current_page + 1) %}
+                        <a href="?{{ request.query_string.decode() | replace('page=' + current_page|string, '') }}&page={{ page_num }}" 
+                           class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            {{ page_num }}
+                        </a>
+                        {% elif page_num == 4 and current_page > 5 %}
+                        <span class="px-2 py-2 text-sm text-gray-500">...</span>
+                        {% elif page_num == total_pages - 3 and current_page < total_pages - 4 %}
+                        <span class="px-2 py-2 text-sm text-gray-500">...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if current_page < total_pages %}
+                    <a href="?{{ request.query_string.decode() | replace('page=' + current_page|string, '') }}&page={{ current_page + 1 }}" 
+                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
         {% endif %}
     </div>
 </div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="fixed bottom-8 right-8 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 opacity-0 invisible">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+    </svg>
+</button>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Alpine.js data for dropdowns
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('dropdown', (config) => ({
-            open: false,
-            search: '',
-            selected: config.selected || '',
-            name: config.name,
-            options: config.options,
-            
-            init() {
-                // Close dropdown when clicking outside
-                const handler = (e) => {
-                    if (!this.$el.contains(e.target)) {
-                        this.open = false;
-                    }
-                };
-                document.addEventListener('click', handler);
-                
-                // Cleanup
-                this.$el._dropdownHandler = handler;
-            },
-            
-            select(id) {
-                this.selected = id;
-                this.open = false;
-                // Trigger form submission when a selection is made
-                if (this.$el.closest('form')) {
-                    this.$el.closest('form').requestSubmit();
-                }
-            },
-            
-            selectedName() {
-                const found = this.options.find(option => option.id == this.selected);
-                return found ? found.name : this.options[0]?.name || 'Select...';
-            },
-            
-            filteredOptions() {
-                if (!this.search.trim()) return this.options;
-                const searchTerm = this.search.toLowerCase();
-                return this.options.filter(option => 
-                    option.name.toLowerCase().includes(searchTerm)
-                );
-            },
-            
-            // Cleanup event listener
-            destroy() {
-                document.removeEventListener('click', this.$el._dropdownHandler);
+    // Back to Top Button
+    const backToTopButton = document.getElementById('backToTop');
+    
+    window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+            backToTopButton.classList.remove('opacity-0', 'invisible');
+        } else {
+            backToTopButton.classList.add('opacity-0', 'invisible');
+        }
+    });
+    
+    backToTopButton.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             }
-        }));
+        });
+    });
+
+    // Loading state for form submissions
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังค้นหา...';
+            }
+        });
     });
 </script>
+
+<!-- Alpine.js Dropdown Component -->
+<script>
+    document.addEventListener('alpine:init', function() {
+        Alpine.data('dropdown', function(config) {
+            return {
+                open: false,
+                search: '',
+                selected: config.selected || '',
+                name: config.name || '',
+                options: Array.isArray(config.options) ? config.options : [],
+                
+                init: function() {
+                    const handler = (e) => {
+                        if (!this.$el.contains(e.target)) {
+                            this.open = false;
+                        }
+                    };
+                    document.addEventListener('click', handler);
+                    this.$el._dropdownHandler = handler;
+                },
+                
+                select: function(id) {
+                    this.selected = id;
+                    this.open = false;
+                    // Update the hidden input value
+                    const hiddenInput = this.$el.querySelector('input[type="hidden"]');
+                    if (hiddenInput) {
+                        hiddenInput.value = id;
+                    }
+                    // Don't auto-submit the form
+                },
+                
+                selectedName: function() {
+                    const option = this.options.find(opt => opt.id === this.selected);
+                    return option ? option.name : this.options[0]?.name || '';
+                },
+                
+                filteredOptions: function() {
+                    if (!this.search) return this.options;
+                    return this.options.filter(option => 
+                        option.name.toLowerCase().includes(this.search.toLowerCase())
+                    );
+                },
+                
+                destroy: function() {
+                    if (this.$el._dropdownHandler) {
+                        document.removeEventListener('click', this.$el._dropdownHandler);
+                    }
+                }
+            };
+        });
+        
+        // Price range functionality
+        Alpine.data('priceRange', function() {
+            return {
+                open: false,
+                minPrice: 0,
+                maxPrice: 10000000,
+                
+                init() {
+                    // Get initial values from URL parameters
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const minPriceParam = urlParams.get('min_price');
+                    const maxPriceParam = urlParams.get('max_price');
+                    
+                    if (minPriceParam) {
+                        this.minPrice = parseInt(minPriceParam);
+                    }
+                    if (maxPriceParam) {
+                        this.maxPrice = parseInt(maxPriceParam);
+                    }
+                },
+                
+                updateMinPrice() {
+                    if (this.minPrice > this.maxPrice) {
+                        this.minPrice = this.maxPrice;
+                    }
+                    if (this.minPrice < 0) {
+                        this.minPrice = 0;
+                    }
+                },
+                
+                updateMaxPrice() {
+                    if (this.maxPrice < this.minPrice) {
+                        this.maxPrice = this.minPrice;
+                    }
+                    if (this.maxPrice > 10000000) {
+                        this.maxPrice = 10000000;
+                    }
+                },
+                
+                clearPriceRange() {
+                    this.minPrice = 0;
+                    this.maxPrice = 10000000;
+                    this.open = false;
+                }
+            }
+        });
+    });
+</script>
+
+<!-- Custom CSS for Range Slider -->
+<style>
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+</style>
 {% endblock %}

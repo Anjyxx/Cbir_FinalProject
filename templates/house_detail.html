@@ -6,124 +6,121 @@
     <title>{{ house.title }} - House Details</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
-        
-        body { 
-            font-family: 'Kanit', sans-serif;
-            color: #1f2937;
-            line-height: 1.6;
-            background-color: #f9fafb;
-        }
-        
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        
-        .hover-scale {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .hover-scale:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .feature-badge {
-            background-color: #f3f4f6;
-            border-radius: 12px;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            color: #4b5563;
-            transition: all 0.2s ease;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .feature-badge:hover {
-            background-color: #e5e7eb;
-            transform: translateY(-1px);
-        }
-        
-        .feature-badge svg {
-            color: #3b82f6;
-        }
-        
-        .price-tag {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 12px;
-            font-weight: 700;
-            display: inline-block;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-        }
-        
-        .description-section {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-        }
-        
-        .contact-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-            transition: all 0.3s ease;
-        }
-        
-        .contact-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .gallery-thumbnail {
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-        
-        .gallery-thumbnail:hover {
-            transform: scale(1.02);
-            border-color: #3b82f6;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .map-container {
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-        }
-        
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .qr-code {
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 1rem;
-            background: white;
-            transition: all 0.3s ease;
-        }
-        
-        .qr-code:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-</head>
+<style>
+    body { 
+        font-family: 'Kanit', sans-serif;
+        color: #1f2937;
+        line-height: 1.6;
+        background-color: #f9fafb;
+    }
+    
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .feature-badge {
+        background-color: #f3f4f6;
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: #4b5563;
+        transition: all 0.2s ease;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .feature-badge:hover {
+        background-color: #e5e7eb;
+        transform: translateY(-1px);
+    }
+    
+    .feature-badge svg {
+        color: #3b82f6;
+    }
+    
+    .price-tag {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        display: inline-block;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    
+    .description-section {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .contact-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .contact-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .gallery-thumbnail {
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .gallery-thumbnail:hover {
+        transform: scale(1.02);
+        border-color: #3b82f6;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .map-container {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .qr-code {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        background: white;
+        transition: all 0.3s ease;
+    }
+    
+    .qr-code:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+</style>
 <body class="font-kanit bg-white">
     <header class="glass-effect sticky top-0 z-50 shadow">
         <div class="container mx-auto px-4">
@@ -232,6 +229,54 @@
                     </button>
                 {% endfor %}
             </div>
+        </div>
+
+        <!-- House Title and Price Section -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
+            <div class="mb-4 sm:mb-0">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 leading-tight">{{ house.title }}</h1>
+                <div class="flex items-center text-blue-600 flex-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-gray-700 text-sm sm:text-base break-words">{{ house.project_address or 'No address available' }}</span>
+                </div>
+            </div>
+            <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center sm:text-right mt-2 sm:mt-0">
+                <div class="text-2xl sm:text-3xl font-bold text-blue-700">{{ house.price | currency }}</div>
+                {% if house.area %}
+                <div class="text-gray-600 text-sm mt-1">{{ house.price_per_sqm }} / ตร.ม.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                <img src="/static/img/icons/bed_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.bedrooms or '-' }} ห้องนอน
+            </div>
+            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                <img src="/static/img/icons/bath_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.bathrooms or '-' }} ห้องน้ำ
+            </div>
+            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                <img src="/static/img/icons/area_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.living_area or '-' }} ตร.ม.
+            </div>
+            {% if house.parking_space %}
+            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                <img src="/static/img/icons/parking_icon.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.parking_space }} ที่จอดรถ
+            </div>
+            {% endif %}
+            {% if house.no_of_floors %}
+            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                <img src="/static/img/icons/projects.png" class="h-5 w-5" alt="calendar icon">
+                {{ house.no_of_floors }} ชั้น
+            </div>
+            {% endif %}
         </div>
 
         <div id="imageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
@@ -450,54 +495,6 @@
                 }
             });
         </script>
-
-        <!-- House Title and Price Section -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
-            <div class="mb-4 sm:mb-0">
-                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 leading-tight">{{ house.title }}</h1>
-                <div class="flex items-center text-blue-600 flex-wrap">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span class="text-gray-700 text-sm sm:text-base break-words">{{ house.project_address or 'No address available' }}</span>
-                </div>
-            </div>
-            <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center sm:text-right mt-2 sm:mt-0">
-                <div class="text-2xl sm:text-3xl font-bold text-blue-700">{{ house.price | currency }}</div>
-                {% if house.area %}
-                <div class="text-gray-600 text-sm mt-1">{{ house.price_per_sqm }} / ตร.ม.</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Features Grid -->
-        <div class="flex flex-wrap gap-2 mb-6">
-            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
-                <img src="/static/img/icons/bed_icon.png" class="h-5 w-5" alt="calendar icon">
-                {{ house.bedrooms or '-' }} ห้องนอน
-            </div>
-            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
-                <img src="/static/img/icons/bath_icon.png" class="h-5 w-5" alt="calendar icon">
-                {{ house.bathrooms or '-' }} ห้องน้ำ
-            </div>
-            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
-                <img src="/static/img/icons/area_icon.png" class="h-5 w-5" alt="calendar icon">
-                {{ house.living_area or '-' }} ตร.ม.
-            </div>
-            {% if house.parking_space %}
-            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
-                <img src="/static/img/icons/parking_icon.png" class="h-5 w-5" alt="calendar icon">
-                {{ house.parking_space }} ที่จอดรถ
-            </div>
-            {% endif %}
-            {% if house.no_of_floors %}
-            <div class="feature-badge flex items-center gap-1.5 px-3 py-1.5 text-sm">
-                <img src="/static/img/icons/projects.png" class="h-5 w-5" alt="calendar icon">
-                {{ house.no_of_floors }} ชั้น
-            </div>
-            {% endif %}
-        </div>
 
         <!-- Main Content Area -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
