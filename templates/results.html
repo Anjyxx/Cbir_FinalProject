@@ -26,7 +26,11 @@
     <div class="bg-white py-6 border-b border-gray-200">
         <div class="container mx-auto px-4">
             <!-- Search and Filter Bar -->
-            <form method="GET" action="{{ url_for('houses_list') }}" class="flex flex-col sm:flex-row items-stretch gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto p-3 sm:p-3">
+             <form method="GET" action="{{ url_for('search_by_image') }}" class="flex flex-col sm:flex-row items-stretch gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto p-3 sm:p-3">
+                 <!-- Preserve query image if it exists -->
+                 {% if query_image %}
+                 <input type="hidden" name="query_image" value="{{ query_image }}">
+                 {% endif %}
                 <div class="w-full sm:flex-1 min-w-0">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ค้นหา</label>
                     <div class="relative">
@@ -89,23 +93,13 @@
                         </div>
                     </div>
                 </div>
-                <!-- Feature Dropdown -->
-                <div class="w-full sm:flex-1 min-w-0" x-data="dropdown({
-                    options: [
-                        {id: '', name: 'ค้นหาลักษณะบ้าน'},
-                        {% for feature in house_features %}
-                            {id: '{{ feature.id }}', name: '{{ feature.name }}'}{% if not loop.last %},{% endif %}
-                        {% endfor %}
-                    ], 
-                    selected: '{{ request.args.get('feature', '') }}', 
-                    name: 'feature',
-                    persist: true
-                })">
+                 <!-- Feature Dropdown -->
+                 <div class="w-full sm:flex-1 min-w-0" x-data="dropdown({options: [{id: '', name: 'ค้นหาลักษณะบ้าน'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
                     <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
                     <div class="relative">
                             <input type="hidden" name="feature" :value="selected">
-                            <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open" x-text="selected ? (options.find(opt => opt.id === selected)?.name || options[0].name) : options[0].name" :class="{'text-gray-400': !selected}">
-                                <span x-text="selected ? (options.find(opt => opt.id === selected)?.name || options[0].name) : options[0].name" class="truncate"></span>
+                            <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
+                                <span x-text="selectedName()" class="truncate"></span>
                                 <template x-if="selected && selected !== options[0].id">
                                     <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -134,6 +128,48 @@
                 </button>
             </div>
         </form>
+    </div>
+    
+    <!-- Sort Options -->
+    <div class="bg-gray-50 py-4">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700">เรียงตาม:</span>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='similarity') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort', 'similarity') == 'similarity' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            ความคล้ายกัน
+                        </a>
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_low') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'price_low' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            ราคาต่ำ-สูง
+                        </a>
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_high') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'price_high' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            ราคาสูง-ต่ำ
+                        </a>
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_low') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'area_low' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            พื้นที่เล็ก-ใหญ่
+                        </a>
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_high') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'area_high' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            พื้นที่ใหญ่-เล็ก
+                        </a>
+                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='newest') }}" 
+                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'newest' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                            ใหม่ล่าสุด
+                        </a>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600">
+                    {% if houses|length > 0 %}
+                        แสดง {{ houses|length }} รายการ
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -209,7 +245,7 @@
     <nav class="flex justify-center my-8">
         <ul class="flex items-center -space-x-px h-10 text-base">
             <li>
-                <a href="{{ url_for('houses_list', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}" 
+                 <a href="{{ url_for('search_by_image', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}"
                    class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 {{ 'opacity-50 cursor-not-allowed' if not pagination.has_prev }}">
                     <span class="sr-only">Previous</span>
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
@@ -220,7 +256,7 @@
             {% for page_num in pagination.iter_pages() %}
                 {% if page_num %}
                     <li>
-                        <a href="{{ url_for('houses_list', page=page_num, **request.args) }}" 
+                         <a href="{{ url_for('search_by_image', page=page_num, **request.args) }}"
                            class="flex items-center justify-center px-4 h-10 leading-tight {{ 'text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' if page_num == pagination.page else 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700' }}">
                             {{ page_num }}
                         </a>
@@ -232,7 +268,7 @@
                 {% endif %}
             {% endfor %}
             <li>
-                <a href="{{ url_for('houses_list', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}" 
+                 <a href="{{ url_for('search_by_image', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}"
                    class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 {{ 'opacity-50 cursor-not-allowed' if not pagination.has_next }}">
                     <span class="sr-only">Next</span>
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
@@ -245,42 +281,37 @@
     {% endif %}
 </div>
 
-<script>
-    // Alpine.js data for dropdowns
-    function dropdown({options, selected, name}) {
-        return {
-            open: false,
-            search: '',
-            selected: selected || '',
-            name: name,
-            options: options,
-            select(id) {
-                this.selected = id;
-                this.open = false;
-            },
-            selectedName() {
-                const found = this.options.find(option => option.id == this.selected);
-                return found ? found.name : this.options[0].name;
-            },
-            filteredOptions() {
-                if (!this.search) return this.options;
-                const searchTerm = this.search.toLowerCase();
-                return this.options.filter(option => 
-                    option.name.toLowerCase().includes(searchTerm)
-                );
-            }
-        };
-    }
-</script>
-{% endblock %}
-<!-- Add Choices.js CSS in the <head> or before </body> in your base template -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<!-- Add Choices.js JS and initialization at the end of the file or in your base template -->
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  new Choices('#type-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
-  new Choices('#project-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
-  new Choices('#feature-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
-});
-</script> 
+ <script>
+     // Alpine.js data for dropdowns
+     document.addEventListener('alpine:init', function() {
+         Alpine.data('dropdown', function({options, selected, name}) {
+             return {
+                 open: false,
+                 search: '',
+                 selected: selected,
+                 name: name,
+                 options: options,
+                 selectedName() {
+                     const found = this.options.find(option => option.id == this.selected);
+                     return found ? found.name : this.options[0].name;
+                 },
+                 filteredOptions() {
+                     if (!this.search) return this.options;
+                     return this.options.filter(option => 
+                         option.name.toLowerCase().includes(this.search.toLowerCase())
+                     );
+                 },
+                 select(id) {
+                     this.selected = id;
+                     this.open = false;
+                     // Update the hidden input value
+                     const hiddenInput = this.$el.querySelector('input[type="hidden"]');
+                     if (hiddenInput) {
+                         hiddenInput.value = id;
+                     }
+                 }
+             };
+         });
+     });
+ </script>
+{% endblock %} 

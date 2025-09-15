@@ -47,10 +47,12 @@ def search_similar_images(query_image_path, top_k=6):
 
     # Get top-k indices
     top_k_idx = np.argsort(similarities)[::-1][:top_k]
+    
     results = []
     for idx in top_k_idx:
         results.append({
             'filename': db_filenames[idx],
             'similarity': float(similarities[idx])
         })
+    
     return results 

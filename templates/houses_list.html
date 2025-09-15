@@ -29,88 +29,76 @@
                         </div>
                         
                         <!-- House Type Dropdown -->
-                        <div x-data="dropdown({options: [{id: '', name: 'ทุกประเภท'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">ประเภทบ้าน</label>
                             <div class="relative">
                                 <input type="hidden" name="house_type" :value="selected">
-                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
                                     <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
-                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    <template x-if="selected && selected !== options[0].id">
+                                        <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
+                                    </template>
+                                    <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
-                                <div x-show="open" @click.away="open = false" 
-                                     x-transition:enter="transition ease-out duration-100"
-                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
-                                     x-transition:enter-end="opacity-100 translate-y-0"
-                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                    <div class="p-2">
-                                        <template x-for="option in options" :key="option.id">
-                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
-                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
-                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
-                                                <span x-text="option.name" class="font-medium"></span>
+                                <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
+                                    <template x-for="option in filteredOptions()" :key="option.id">
+                                        <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
+                                            <span x-text="option.name" class="text-gray-900"></span>
                                             </div>
                                         </template>
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Project Dropdown -->
-                        <div x-data="dropdown({options: [{id: '', name: 'ทุกโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">จังหวัดในโครงการ</label>
                             <div class="relative">
                                 <input type="hidden" name="project" :value="selected">
-                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
                                     <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
-                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    <template x-if="selected && selected !== options[0].id">
+                                        <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
+                                    </template>
+                                    <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
-                                <div x-show="open" @click.away="open = false" 
-                                     x-transition:enter="transition ease-out duration-100"
-                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
-                                     x-transition:enter-end="opacity-100 translate-y-0"
-                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                    <div class="p-2">
-                                        <template x-for="option in options" :key="option.id">
-                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
-                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
-                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
-                                                <span x-text="option.name" class="font-medium"></span>
+                                <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
+                                    <template x-for="option in filteredOptions()" :key="option.id">
+                                        <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
+                                            <span x-text="option.name" class="text-gray-900"></span>
                                             </div>
                                         </template>
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- House Features Dropdown -->
-                        <div x-data="dropdown({options: [{id: '', name: 'ทุกลักษณะ'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาลักษณะบ้าน'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">ลักษณะบ้าน</label>
                             <div class="relative">
                                 <input type="hidden" name="feature" :value="selected">
-                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between transition-all duration-200" @click="open = !open; $event.preventDefault(); $event.stopPropagation();">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
                                     <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
-                                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    <template x-if="selected && selected !== options[0].id">
+                                        <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
+                                    </template>
+                                    <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
-                                <div x-show="open" @click.away="open = false" 
-                                     x-transition:enter="transition ease-out duration-100"
-                                     x-transition:enter-start="opacity-0 transform -translate-y-2"
-                                     x-transition:enter-end="opacity-100 translate-y-0"
-                                     class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                    <div class="p-2">
-                                        <template x-for="option in options" :key="option.id">
-                                            <div @click="select(option.id); $event.preventDefault(); $event.stopPropagation();" 
-                                                 class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-colors duration-150 text-gray-900"
-                                                 :class="{'bg-blue-100 text-blue-700 font-medium': selected === option.id}">
-                                                <span x-text="option.name" class="font-medium"></span>
+                                <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
+                                    <template x-for="option in filteredOptions()" :key="option.id">
+                                        <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
+                                            <span x-text="option.name" class="text-gray-900"></span>
                                             </div>
                                         </template>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -154,47 +142,97 @@
                              x-transition:enter-start="opacity-0 transform -translate-y-2"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute z-50 mt-2 w-96 bg-white border-2 border-gray-200 rounded-xl shadow-xl p-6">
-                            <div class="space-y-6">
+                            <form method="GET" action="{{ url_for('houses_list') }}" class="space-y-6">
+                                <!-- Preserve existing filters -->
+                                <input type="hidden" name="search" value="{{ request.args.get('search', '') }}">
+                                <input type="hidden" name="project" value="{{ request.args.get('project', '') }}">
+                                <input type="hidden" name="house_type" value="{{ request.args.get('house_type', '') }}">
+                                <input type="hidden" name="bedrooms" value="{{ request.args.get('bedrooms', '') }}">
+                                <input type="hidden" name="feature" value="{{ request.args.get('feature', '') }}">
+                                <input type="hidden" name="min_area" value="{{ request.args.get('min_area', '') }}">
+                                <input type="hidden" name="max_area" value="{{ request.args.get('max_area', '') }}">
+                                <input type="hidden" name="sort" value="{{ request.args.get('sort', 'newest') }}">
+                                
                                 <div>
-                                    <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">ช่วงราคา (บาท)</h3>
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-6 text-center">ช่วงราคา (บาท)</h3>
                                     
-                                    <!-- Price Range Slider -->
-                                    <div class="mb-6">
-                                        <div class="relative">
+                                    <!-- Dual Handle Range Slider -->
+                                    <div class="mb-8">
+                                        <div class="relative h-6 flex items-center">
+                                            <!-- Track -->
+                                            <div class="absolute w-full h-2 bg-gray-200 rounded-full"></div>
+                                            <!-- Active range -->
+                                            <div class="absolute h-2 bg-blue-500 rounded-full" 
+                                                 :style="`left: ${(minPrice / 10000000) * 100}%; width: ${((maxPrice - minPrice) / 10000000) * 100}%`"></div>
+                                            
+                                            <!-- Min handle -->
                                             <input type="range" 
                                                    x-model="minPrice" 
                                                    :min="0" 
                                                    :max="maxPrice" 
                                                    @input="updateMinPrice"
-                                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                                   class="absolute w-full h-6 opacity-0 cursor-pointer z-10"
+                                                   style="pointer-events: auto;">
+                                            
+                                            <!-- Max handle -->
                                             <input type="range" 
                                                    x-model="maxPrice" 
                                                    :min="minPrice" 
                                                    :max="10000000" 
                                                    @input="updateMaxPrice"
-                                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider absolute top-0">
+                                                   class="absolute w-full h-6 opacity-0 cursor-pointer z-20"
+                                                   style="pointer-events: auto;">
+                                            
+                                            <!-- Min thumb -->
+                                            <div class="absolute w-5 h-5 bg-blue-500 rounded-full shadow-lg cursor-pointer z-30 transform -translate-x-1/2" 
+                                                 :style="`left: ${(minPrice / 10000000) * 100}%`"
+                                                 @mousedown="startDrag('min')"
+                                                 @touchstart="startDrag('min')"></div>
+                                            
+                                            <!-- Max thumb -->
+                                            <div class="absolute w-5 h-5 bg-blue-500 rounded-full shadow-lg cursor-pointer z-30 transform -translate-x-1/2" 
+                                                 :style="`left: ${(maxPrice / 10000000) * 100}%`"
+                                                 @mousedown="startDrag('max')"
+                                                 @touchstart="startDrag('max')"></div>
                                         </div>
-                                        <div class="flex justify-between text-sm text-gray-600 mt-2">
+                                        
+                                        <!-- Range labels -->
+                                        <div class="flex justify-between text-sm text-gray-600 mt-4">
                                             <span>0</span>
                                             <span>10,000,000</span>
                                         </div>
                                     </div>
                                     
-                                    <!-- Price Input Fields -->
+                                    <!-- Price Input Fields with Checkmarks -->
+                                    <div class="space-y-4">
                                     <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคาต่ำสุด</label>
+                                            <!-- Minimum Price Input -->
+                                            <div class="space-y-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <label class="text-sm font-medium text-gray-700">ต่ำสุด (บาท)</label>
+                                                </div>
                                             <input type="number" 
                                                    x-model="minPrice" 
                                                    @input="updateMinPrice"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium">
+                                            </div>
+                                            
+                                            <!-- Maximum Price Input -->
+                                            <div class="space-y-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <label class="text-sm font-medium text-gray-700">สูงสุด (บาท)</label>
                                         </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคาสูงสุด</label>
                                             <input type="number" 
                                                    x-model="maxPrice" 
                                                    @input="updateMaxPrice"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-blue-600 font-medium">
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -209,10 +247,10 @@
                                         ยกเลิก
                                     </button>
                                     <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                                        บันทึก
+                                        ค้นหา
                                     </button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
 
@@ -222,7 +260,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                             </svg>
-                            <span class="text-sm font-medium">ขนาดพื้นที่</span>
+                            <span class="text-sm font-medium">ช่วงขนาดพื้นที่</span>
                             <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
@@ -232,9 +270,19 @@
                              x-transition:enter-start="opacity-0 transform -translate-y-2"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute z-50 mt-2 w-80 bg-white border-2 border-gray-200 rounded-xl shadow-xl p-4">
-                            <div class="space-y-4">
+                            <form method="GET" action="{{ url_for('houses_list') }}" class="space-y-4">
+                                <!-- Preserve existing filters -->
+                                <input type="hidden" name="search" value="{{ request.args.get('search', '') }}">
+                                <input type="hidden" name="project" value="{{ request.args.get('project', '') }}">
+                                <input type="hidden" name="house_type" value="{{ request.args.get('house_type', '') }}">
+                                <input type="hidden" name="bedrooms" value="{{ request.args.get('bedrooms', '') }}">
+                                <input type="hidden" name="feature" value="{{ request.args.get('feature', '') }}">
+                                <input type="hidden" name="min_price" value="{{ request.args.get('min_price', '') }}">
+                                <input type="hidden" name="max_price" value="{{ request.args.get('max_price', '') }}">
+                                <input type="hidden" name="sort" value="{{ request.args.get('sort', 'newest') }}">
+                                
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">ขนาดพื้นที่ (ตร.ม.)</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">ช่วงขนาดพื้นที่ (ตร.ม.)</label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <input type="number" name="min_area" placeholder="พื้นที่ต่ำสุด" 
                                                value="{{ request.args.get('min_area', '') }}"
@@ -245,9 +293,9 @@
                                     </div>
                                 </div>
                                 <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                                    ใช้ตัวกรอง
+                                    ค้นหา
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
 
@@ -257,7 +305,16 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
                             </svg>
-                            <span class="text-sm font-medium">เรียงตาม</span>
+                            <span class="text-sm font-medium">
+                                {% set sort_labels = {
+                                    'newest': 'ใหม่ล่าสุด',
+                                    'price_asc': 'ราคาต่ำ-สูง', 
+                                    'price_desc': 'ราคาสูง-ต่ำ',
+                                    'area_asc': 'พื้นที่น้อย-มาก',
+                                    'area_desc': 'พื้นที่มาก-น้อย'
+                                } %}
+                                {{ sort_labels.get(request.args.get('sort', 'newest'), 'ใหม่ล่าสุด') }}
+                            </span>
                             <svg class="w-4 h-4 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
@@ -268,16 +325,27 @@
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute z-50 mt-2 w-48 bg-white border-2 border-gray-200 rounded-xl shadow-xl">
                             <div class="py-1">
-                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=newest" 
-                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ใหม่ล่าสุด</a>
-                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=price_asc" 
-                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ราคาต่ำ-สูง</a>
-                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=price_desc" 
-                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">ราคาสูง-ต่ำ</a>
-                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=area_asc" 
-                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">พื้นที่น้อย-มาก</a>
-                                <a href="?{{ request.query_string.decode() | replace('sort=newest', '') | replace('sort=price_asc', '') | replace('sort=price_desc', '') | replace('sort=area_asc', '') | replace('sort=area_desc', '') }}&sort=area_desc" 
-                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150">พื้นที่มาก-น้อย</a>
+                                {% set current_sort = request.args.get('sort', 'newest') %}
+                                {% set search = request.args.get('search', '') %}
+                                {% set project = request.args.get('project', '') %}
+                                {% set house_type = request.args.get('house_type', '') %}
+                                {% set bedrooms = request.args.get('bedrooms', '') %}
+                                {% set feature = request.args.get('feature', '') %}
+                                {% set min_price = request.args.get('min_price', '') %}
+                                {% set max_price = request.args.get('max_price', '') %}
+                                {% set min_area = request.args.get('min_area', '') %}
+                                {% set max_area = request.args.get('max_area', '') %}
+                                
+                                <a href="?search={{ search }}&project={{ project }}&house_type={{ house_type }}&bedrooms={{ bedrooms }}&feature={{ feature }}&min_price={{ min_price }}&max_price={{ max_price }}&min_area={{ min_area }}&max_area={{ max_area }}&sort=newest" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 {{ 'bg-blue-50 text-blue-700 font-medium' if current_sort == 'newest' else '' }}">ใหม่ล่าสุด</a>
+                                <a href="?search={{ search }}&project={{ project }}&house_type={{ house_type }}&bedrooms={{ bedrooms }}&feature={{ feature }}&min_price={{ min_price }}&max_price={{ max_price }}&min_area={{ min_area }}&max_area={{ max_area }}&sort=price_asc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 {{ 'bg-blue-50 text-blue-700 font-medium' if current_sort == 'price_asc' else '' }}">ราคาต่ำ-สูง</a>
+                                <a href="?search={{ search }}&project={{ project }}&house_type={{ house_type }}&bedrooms={{ bedrooms }}&feature={{ feature }}&min_price={{ min_price }}&max_price={{ max_price }}&min_area={{ min_area }}&max_area={{ max_area }}&sort=price_desc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 {{ 'bg-blue-50 text-blue-700 font-medium' if current_sort == 'price_desc' else '' }}">ราคาสูง-ต่ำ</a>
+                                <a href="?search={{ search }}&project={{ project }}&house_type={{ house_type }}&bedrooms={{ bedrooms }}&feature={{ feature }}&min_price={{ min_price }}&max_price={{ max_price }}&min_area={{ min_area }}&max_area={{ max_area }}&sort=area_asc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 {{ 'bg-blue-50 text-blue-700 font-medium' if current_sort == 'area_asc' else '' }}">พื้นที่น้อย-มาก</a>
+                                <a href="?search={{ search }}&project={{ project }}&house_type={{ house_type }}&bedrooms={{ bedrooms }}&feature={{ feature }}&min_price={{ min_price }}&max_price={{ max_price }}&min_area={{ min_area }}&max_area={{ max_area }}&sort=area_desc" 
+                                   class="block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 {{ 'bg-blue-50 text-blue-700 font-medium' if current_sort == 'area_desc' else '' }}">พื้นที่มาก-น้อย</a>
                             </div>
                         </div>
                     </div>
@@ -512,50 +580,30 @@
 <!-- Alpine.js Dropdown Component -->
 <script>
     document.addEventListener('alpine:init', function() {
-        Alpine.data('dropdown', function(config) {
+        Alpine.data('dropdown', function({options, selected, name}) {
             return {
                 open: false,
                 search: '',
-                selected: config.selected || '',
-                name: config.name || '',
-                options: Array.isArray(config.options) ? config.options : [],
-                
-                init: function() {
-                    const handler = (e) => {
-                        if (!this.$el.contains(e.target)) {
-                            this.open = false;
-                        }
-                    };
-                    document.addEventListener('click', handler);
-                    this.$el._dropdownHandler = handler;
+                selected: selected,
+                name: name,
+                options: options,
+                selectedName() {
+                    const found = this.options.find(option => option.id == this.selected);
+                    return found ? found.name : this.options[0].name;
                 },
-                
-                select: function(id) {
+                filteredOptions() {
+                    if (!this.search) return this.options;
+                    return this.options.filter(option => 
+                        option.name.toLowerCase().includes(this.search.toLowerCase())
+                    );
+                },
+                select(id) {
                     this.selected = id;
                     this.open = false;
                     // Update the hidden input value
                     const hiddenInput = this.$el.querySelector('input[type="hidden"]');
                     if (hiddenInput) {
                         hiddenInput.value = id;
-                    }
-                    // Don't auto-submit the form
-                },
-                
-                selectedName: function() {
-                    const option = this.options.find(opt => opt.id === this.selected);
-                    return option ? option.name : this.options[0]?.name || '';
-                },
-                
-                filteredOptions: function() {
-                    if (!this.search) return this.options;
-                    return this.options.filter(option => 
-                        option.name.toLowerCase().includes(this.search.toLowerCase())
-                    );
-                },
-                
-                destroy: function() {
-                    if (this.$el._dropdownHandler) {
-                        document.removeEventListener('click', this.$el._dropdownHandler);
                     }
                 }
             };
@@ -565,8 +613,9 @@
         Alpine.data('priceRange', function() {
             return {
                 open: false,
-                minPrice: 0,
+                minPrice: 100000,
                 maxPrice: 10000000,
+                dragging: null,
                 
                 init() {
                     // Get initial values from URL parameters
@@ -580,6 +629,35 @@
                     if (maxPriceParam) {
                         this.maxPrice = parseInt(maxPriceParam);
                     }
+                    
+                    // Add event listeners for dragging
+                    document.addEventListener('mousemove', (e) => this.handleDrag(e));
+                    document.addEventListener('mouseup', () => this.stopDrag());
+                    document.addEventListener('touchmove', (e) => this.handleDrag(e));
+                    document.addEventListener('touchend', () => this.stopDrag());
+                },
+                
+                startDrag(type) {
+                    this.dragging = type;
+                },
+                
+                handleDrag(e) {
+                    if (!this.dragging) return;
+                    
+                    const rect = e.target.closest('.relative').getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                    const value = Math.round((percentage / 100) * 10000000);
+                    
+                    if (this.dragging === 'min') {
+                        this.minPrice = Math.min(value, this.maxPrice);
+                    } else if (this.dragging === 'max') {
+                        this.maxPrice = Math.max(value, this.minPrice);
+                    }
+                },
+                
+                stopDrag() {
+                    this.dragging = null;
                 },
                 
                 updateMinPrice() {
@@ -601,7 +679,7 @@
                 },
                 
                 clearPriceRange() {
-                    this.minPrice = 0;
+                    this.minPrice = 100000;
                     this.maxPrice = 10000000;
                     this.open = false;
                 }
@@ -612,40 +690,84 @@
 
 <!-- Custom CSS for Range Slider -->
 <style>
-.slider {
+/* Hide default range inputs */
+input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    height: 6px;
-    border-radius: 3px;
-    background: #e5e7eb;
-    outline: none;
-    opacity: 0.7;
-    transition: opacity .2s;
+    background: transparent;
+    cursor: pointer;
 }
 
-.slider:hover {
-    opacity: 1;
+input[type="range"]::-webkit-slider-track {
+    background: transparent;
+    height: 0;
 }
 
-.slider::-webkit-slider-thumb {
+input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #3b82f6;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background: transparent;
+    height: 0;
+    width: 0;
 }
 
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #3b82f6;
-    cursor: pointer;
+input[type="range"]::-moz-range-track {
+    background: transparent;
+    height: 0;
+}
+
+input[type="range"]::-moz-range-thumb {
+    background: transparent;
+    height: 0;
+    width: 0;
     border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Custom dual-handle slider styling */
+.range-slider-container {
+    position: relative;
+    height: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.range-slider-track {
+    position: absolute;
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+}
+
+.range-slider-active {
+    position: absolute;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.range-slider-thumb {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: translateX(-50%);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.range-slider-thumb:hover {
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.range-slider-thumb:active {
+    transform: translateX(-50%) scale(1.2);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 </style>
 {% endblock %}

@@ -1610,7 +1610,7 @@ def admin_add_house():
         cur.execute("SELECT p_id, p_name FROM project ORDER BY p_name")
         projects = dict_fetchall(cur)
         
-        cur.execute("SELECT f_id, f_name FROM house_features ORDER BY f_name")
+        cur.execute("SELECT f_id, f_name FROM house_features WHERE status = 'active' ORDER BY f_name")
         house_features = dict_fetchall(cur)
         
         cur.close()
@@ -1713,7 +1713,7 @@ def admin_edit_house(id):
         cur.execute("SELECT p_id, p_name FROM project ORDER BY p_name")
         projects = dict_fetchall(cur)
 
-        cur.execute("SELECT f_id, f_name FROM house_features ORDER BY f_name")
+        cur.execute("SELECT f_id, f_name FROM house_features WHERE status = 'active' ORDER BY f_name")
         house_features = dict_fetchall(cur)
         
         cur.close()
@@ -3285,6 +3285,7 @@ def house_features_page():
                 ELSE f_image 
             END as image 
         FROM house_features
+        WHERE status = 'active'
     """)
     features = dict_fetchall(cur)
     cur.close()
@@ -3892,8 +3893,227 @@ def set_main_house_image(house_id, image_id):
     return redirect(url_for('admin_edit_house', id=house_id))
 
 @csrf.exempt
-@app.route('/search_by_image', methods=['POST'])
+@app.route('/search_by_image', methods=['GET', 'POST'])
 def search_by_image():
+    if request.method == 'GET':
+        # Handle GET requests for filtering on image search results
+        query_image = request.args.get('query_image') or session.get('cbir_query_image')
+        
+        if not query_image:
+            # If no query image, show empty results with message
+            cur = mysql.connection.cursor()
+            
+            # Get dropdown data for the filter bar
+            cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+            house_types = dict_fetchall(cur)
+            
+            cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+            projects = dict_fetchall(cur)
+            
+            cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+            features = dict_fetchall(cur)
+            
+            cur.close()
+            
+            return render_template('results.html', 
+                                 houses=[], 
+                                 query_image=None, 
+                                 pagination=None,
+                                 house_types=house_types,
+                                 projects=projects,
+                                 features=features,
+                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน")
+        
+        # Get all houses and CBIR results from session
+        all_houses = session.get('all_houses', [])
+        cbir_house_ids = set(session.get('cbir_house_ids', []))
+        if not cbir_house_ids:
+            # If no CBIR data in session, show empty results with message
+            cur = mysql.connection.cursor()
+            
+            # Get dropdown data
+            cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+            house_types = dict_fetchall(cur)
+            
+            cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+            projects = dict_fetchall(cur)
+            
+            cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+            features = dict_fetchall(cur)
+            
+            cur.close()
+            
+            return render_template('results.html', 
+                                 houses=[], 
+                                 query_image=query_image, 
+                                 pagination=None,
+                                 house_types=house_types,
+                                 projects=projects,
+                                 features=features,
+                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน")
+        
+        # If all_houses is empty but cbir_house_ids exists, fetch all houses from database
+        if not all_houses:
+            print("[DEBUG] all_houses is empty, fetching from database...")
+            cur = mysql.connection.cursor()
+            
+            # Fetch all active houses
+            cur.execute("""
+                SELECT h.h_id as id, h.h_title as title, h.h_description as description,
+                       h.price, h.bedrooms, h.bathrooms, h.living_area as area,
+                       h.created_at, h.updated_at,
+                       t.t_name as type_name, p.p_name as project_name,
+                       (SELECT image_url FROM house_images WHERE house_id = h.h_id LIMIT 1) as main_image_url
+                FROM house h
+                LEFT JOIN house_type t ON h.t_id = t.t_id
+                LEFT JOIN project p ON h.p_id = p.p_id
+                WHERE 1=1
+                ORDER BY h.h_id DESC
+            """)
+            all_houses = dict_fetchall(cur)
+            cur.close()
+            
+            # Mark CBIR houses and get similarity scores from session
+            cbir_house_ids_set = set(cbir_house_ids)
+            similarity_scores = session.get('cbir_similarity_scores', {})
+            print(f"[DEBUG] CBIR house IDs: {list(cbir_house_ids_set)}")
+            print(f"[DEBUG] Similarity scores from session: {similarity_scores}")
+            
+            for house in all_houses:
+                house['is_cbir_result'] = house['id'] in cbir_house_ids_set
+                # Try both string and integer keys for house ID
+                house_id_str = str(house['id'])
+                house_id_int = house['id']
+                similarity = similarity_scores.get(house_id_str, similarity_scores.get(house_id_int, 0.0))
+                house['similarity'] = similarity
+                house['gallery_images'] = []
+                
+                if house['is_cbir_result']:
+                    print(f"[DEBUG] House {house['id']} similarity: {similarity}")
+                
+                # Fix image URL if it exists
+                if house.get('main_image_url'):
+                    # Ensure the URL starts with /static/uploads/
+                    if not house['main_image_url'].startswith('/static/'):
+                        house['main_image_url'] = '/static/uploads/' + house['main_image_url'].split('/')[-1]
+            
+        # Apply filters to ALL houses
+        filtered_houses = all_houses.copy()
+        
+        # Get filter parameters
+        search = request.args.get('search', '').strip()
+        project_id = request.args.get('project', '').strip()
+        house_type_id = request.args.get('house_type', '').strip()
+        feature_id = request.args.get('feature', '').strip()
+        min_price = request.args.get('min_price', '').strip()
+        max_price = request.args.get('max_price', '').strip()
+        min_area = request.args.get('min_area', '').strip()
+        max_area = request.args.get('max_area', '').strip()
+        sort = request.args.get('sort', 'similarity').strip()
+        
+        # Apply search filter
+        if search:
+            filtered_houses = [house for house in filtered_houses 
+                             if search.lower() in house.get('title', '').lower() 
+                             or search.lower() in house.get('description', '').lower()]
+        
+        # Apply project filter
+        if project_id:
+            filtered_houses = [house for house in filtered_houses 
+                             if str(house.get('p_id', '')) == project_id]
+        
+        # Apply house type filter
+        if house_type_id:
+            filtered_houses = [house for house in filtered_houses 
+                             if str(house.get('t_id', '')) == house_type_id]
+        
+        # Apply feature filter
+        if feature_id:
+            # Get houses that have this feature
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
+            house_ids_with_feature = [row[0] for row in cur.fetchall()]
+            cur.close()
+            
+            filtered_houses = [house for house in filtered_houses 
+                             if house.get('id') in house_ids_with_feature]
+        
+        # Apply price filter
+        if min_price:
+            try:
+                min_price_val = float(min_price)
+                filtered_houses = [house for house in filtered_houses 
+                                 if house.get('price', 0) >= min_price_val]
+            except ValueError:
+                pass
+        
+        if max_price:
+            try:
+                max_price_val = float(max_price)
+                filtered_houses = [house for house in filtered_houses 
+                                 if house.get('price', 0) <= max_price_val]
+            except ValueError:
+                pass
+        
+        # Apply area filter
+        if min_area:
+            try:
+                min_area_val = float(min_area)
+                filtered_houses = [house for house in filtered_houses 
+                                 if house.get('area', 0) >= min_area_val]
+            except ValueError:
+                pass
+        
+        if max_area:
+            try:
+                max_area_val = float(max_area)
+                filtered_houses = [house for house in filtered_houses 
+                                 if house.get('area', 0) <= max_area_val]
+            except ValueError:
+                pass
+        
+        # Apply sorting
+        if sort == 'price_low':
+            filtered_houses.sort(key=lambda x: x.get('price', 0))
+        elif sort == 'price_high':
+            filtered_houses.sort(key=lambda x: x.get('price', 0), reverse=True)
+        elif sort == 'area_low':
+            filtered_houses.sort(key=lambda x: x.get('area', 0))
+        elif sort == 'area_high':
+            filtered_houses.sort(key=lambda x: x.get('area', 0), reverse=True)
+        elif sort == 'newest':
+            filtered_houses.sort(key=lambda x: x.get('id', 0), reverse=True)
+        elif sort == 'oldest':
+            filtered_houses.sort(key=lambda x: x.get('id', 0))
+        elif sort == 'similarity':
+            # Sort by similarity (CBIR results first, then by similarity score)
+            filtered_houses.sort(key=lambda x: (not x.get('is_cbir_result', False), -x.get('similarity', 0)))
+        
+        # Only show houses that were originally found by CBIR
+        filtered_houses = [house for house in filtered_houses if house.get('is_cbir_result', False)]
+        
+        # Get dropdown data
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+        house_types = dict_fetchall(cur)
+        
+        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+        projects = dict_fetchall(cur)
+        
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+        features = dict_fetchall(cur)
+        
+        cur.close()
+        
+        return render_template('results.html', 
+                             houses=filtered_houses, 
+                             query_image=query_image, 
+                             pagination=None,
+                             house_types=house_types,
+                             projects=projects,
+                             features=features)
+    
+    # Handle POST requests (original image upload functionality)
     file = request.files.get('query_img') or request.files.get('file')
     if not file:
         return "No file part in request.", 400
@@ -3909,8 +4129,13 @@ def search_by_image():
     file.save(upload_path)
 
     # Run CBIR search
-    results = search_similar_images(upload_path, top_k=6)
-    print("[DEBUG] CBIR Results:", results)
+    try:
+        results = search_similar_images(upload_path, top_k=6)
+    except Exception as e:
+        print(f"[ERROR] CBIR search failed: {e}")
+        import traceback
+        traceback.print_exc()
+        results = []
 
     # Convert numpy strings to regular strings and get filenames
     cbir_results = []
@@ -3939,7 +4164,26 @@ def search_by_image():
             print(f"[WARNING] Invalid result format: {r}, error: {e}")
     
     if not cbir_results:
-        return render_template('results.html', houses=[], query_image=filename, pagination=None)
+        # Get dropdown data for the filter bar
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+        house_types = dict_fetchall(cur)
+        
+        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+        projects = dict_fetchall(cur)
+        
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+        features = dict_fetchall(cur)
+        
+        cur.close()
+        
+        return render_template('results.html', 
+                             houses=[], 
+                             query_image=filename, 
+                             pagination=None,
+                             house_types=house_types,
+                             projects=projects,
+                             features=features)
 
     cur = mysql.connection.cursor()
     # Get all existing image filenames from the database
@@ -4036,8 +4280,25 @@ def search_by_image():
     house_similarities = {house_id: info['similarity'] for house_id, info in top_houses}
 
     if not matched_house_ids:
+        # Get dropdown data for the filter bar
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+        house_types = dict_fetchall(cur)
+        
+        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+        projects = dict_fetchall(cur)
+        
+        cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+        features = dict_fetchall(cur)
+        
         cur.close()
-        return render_template('results.html', houses=[], query_image=filename, pagination=None)
+        
+        return render_template('results.html', 
+                             houses=[], 
+                             query_image=filename, 
+                             pagination=None,
+                             house_types=house_types,
+                             projects=projects,
+                             features=features)
 
     # Fetch houses for matched house_ids
     format_strings = ','.join(['%s'] * len(matched_house_ids))
@@ -4106,7 +4367,77 @@ def search_by_image():
     houses.sort(key=lambda x: x.get('similarity', 0), reverse=True)
     houses = houses[:5]  # Limit to top 5 most similar houses
 
-    return render_template('results.html', houses=houses, query_image=filename, pagination=None)
+    # Mark CBIR results with a flag
+    cbir_house_ids = {house['id'] for house in houses}
+    for house in houses:
+        house['is_cbir_result'] = True
+
+    # Get ALL houses from database for filtering
+    cur = mysql.connection.cursor()
+    all_houses_query = '''
+        SELECT h.h_id as id, h.h_title as title, h.h_description as description, 
+               h.price, h.bedrooms, h.bathrooms, 
+               h.living_area as area, h.parking_space as parking,
+               h.no_of_floors as floors, h.status,
+               h.latitude, h.longitude,
+               t.t_name as type_name, p.p_name as project_name,
+               h.t_id, h.p_id
+        FROM house h
+        LEFT JOIN house_type t ON h.t_id = t.t_id
+        LEFT JOIN project p ON h.p_id = p.p_id
+        WHERE h.status = 'active'
+        ORDER BY h.h_id
+    '''
+    cur.execute(all_houses_query)
+    all_houses = dict_fetchall(cur)
+    
+    # Mark which houses are CBIR results
+    for house in all_houses:
+        house['is_cbir_result'] = house['id'] in cbir_house_ids
+        if house['is_cbir_result']:
+            # Copy similarity score from CBIR results
+            cbir_house = next((h for h in houses if h['id'] == house['id']), None)
+            if cbir_house:
+                house['similarity'] = cbir_house.get('similarity', 0)
+                house['gallery_images'] = cbir_house.get('gallery_images', [])
+            else:
+                house['similarity'] = 0
+                house['gallery_images'] = []
+        else:
+            house['similarity'] = 0
+            house['gallery_images'] = []
+    
+    # Store ALL houses and CBIR results in session for filtering
+    session['all_houses'] = all_houses
+    session['cbir_house_ids'] = list(cbir_house_ids)
+    session['cbir_query_image'] = filename
+    print(f"[DEBUG] House best matches before storing: {house_best_matches}")
+    print(f"[DEBUG] House best matches type: {type(house_best_matches)}")
+    print(f"[DEBUG] House best matches keys: {list(house_best_matches.keys()) if house_best_matches else 'Empty'}")
+    
+    session['cbir_similarity_scores'] = {house_id: match['similarity'] for house_id, match in house_best_matches.items()}
+    print(f"[DEBUG] Storing similarity scores: {session['cbir_similarity_scores']}")
+    print(f"[DEBUG] Session keys after storing: {list(session.keys())}")
+
+    # Get dropdown data for the filter bar
+    cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+    house_types = dict_fetchall(cur)
+    
+    cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+    projects = dict_fetchall(cur)
+    
+    cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+    features = dict_fetchall(cur)
+    
+    cur.close()
+
+    return render_template('results.html', 
+                         houses=houses, 
+                         query_image=filename, 
+                         pagination=None,
+                         house_types=house_types,
+                         projects=projects,
+                         features=features)
 
 
 
