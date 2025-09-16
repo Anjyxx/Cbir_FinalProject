@@ -3978,6 +3978,21 @@ def search_by_image():
         # Get all houses and CBIR results from session
         all_houses = session.get('all_houses', [])
         cbir_house_ids = set(session.get('cbir_house_ids', []))
+        
+        # Debug: Check if session data has required fields
+        print(f"[DEBUG] Session all_houses count: {len(all_houses) if all_houses else 0}")
+        print(f"[DEBUG] CBIR house IDs: {list(cbir_house_ids) if cbir_house_ids else 'None'}")
+        if all_houses and len(all_houses) > 0:
+            sample_house = all_houses[0]
+            print(f"[DEBUG] Sample house keys: {list(sample_house.keys())}")
+            if 't_id' not in sample_house or 'p_id' not in sample_house:
+                print(f"[DEBUG] Session data missing t_id/p_id fields, fetching fresh data...")
+                all_houses = []
+            else:
+                print(f"[DEBUG] Session data has t_id/p_id fields, using session data")
+        else:
+            print(f"[DEBUG] No session data or empty session data")
+        
         if not cbir_house_ids:
             # If no CBIR data in session, show empty results with message
             cur = mysql.connection.cursor()
@@ -4006,23 +4021,51 @@ def search_by_image():
         # If all_houses is empty but cbir_house_ids exists, fetch all houses from database
         if not all_houses:
             print("[DEBUG] all_houses is empty, fetching from database...")
+            print(f"[DEBUG] CBIR house IDs exist: {len(cbir_house_ids) if cbir_house_ids else 0}")
             cur = mysql.connection.cursor()
             
             # Fetch all active houses
-            cur.execute("""
+            query = """
                 SELECT h.h_id as id, h.h_title as title, h.h_description as description,
                        h.price, h.bedrooms, h.bathrooms, h.living_area as area,
                        h.created_at, h.updated_at,
                        t.t_name as type_name, p.p_name as project_name,
+                       h.t_id, h.p_id,
                        (SELECT image_url FROM house_images WHERE house_id = h.h_id LIMIT 1) as main_image_url
                 FROM house h
                 LEFT JOIN house_type t ON h.t_id = t.t_id
                 LEFT JOIN project p ON h.p_id = p.p_id
-                WHERE 1=1
+                WHERE h.status = 'available'
                 ORDER BY h.h_id DESC
-            """)
+            """
+            print(f"[DEBUG] Executing query: {query}")
+            cur.execute(query)
             all_houses = dict_fetchall(cur)
+            print(f"[DEBUG] Query returned {len(all_houses)} houses")
+            
+            # Debug: Check if there are any houses at all
+            cur.execute("SELECT COUNT(*) FROM house WHERE status = 'available'")
+            count = cur.fetchone()[0]
+            print(f"[DEBUG] Total available houses in database: {count}")
+            
+            # Debug: Check what status values exist
+            cur.execute("SELECT DISTINCT status FROM house")
+            statuses = cur.fetchall()
+            print(f"[DEBUG] Available status values: {[s[0] for s in statuses]}")
+            
+            # Debug: Check houses with CBIR IDs
+            cbir_ids_str = ','.join(map(str, cbir_house_ids))
+            cur.execute(f"SELECT h_id, status FROM house WHERE h_id IN ({cbir_ids_str})")
+            cbir_houses = cur.fetchall()
+            print(f"[DEBUG] CBIR houses status: {cbir_houses}")
+            
             cur.close()
+            
+            # Debug: Check if the fetched data has required fields
+            if all_houses and len(all_houses) > 0:
+                sample_house = all_houses[0]
+                print(f"[DEBUG] Fetched house data keys: {list(sample_house.keys())}")
+                print(f"[DEBUG] Sample house t_id: {sample_house.get('t_id')}, p_id: {sample_house.get('p_id')}")
             
             # Mark CBIR houses and get similarity scores from session
             cbir_house_ids_set = set(cbir_house_ids)
@@ -4049,6 +4092,8 @@ def search_by_image():
                         house['main_image_url'] = '/static/uploads/' + house['main_image_url'].split('/')[-1]
             
         # Apply filters to ALL houses
+        print(f"[DEBUG] Starting filtering process with {len(all_houses)} houses")
+        print(f"[DEBUG] All houses sample: {all_houses[0] if all_houses else 'No houses'}")
         filtered_houses = all_houses.copy()
         
         # Get filter parameters
@@ -4062,32 +4107,85 @@ def search_by_image():
         max_area = request.args.get('max_area', '').strip()
         sort = request.args.get('sort', 'similarity').strip()
         
+        print(f"Raw request args: {dict(request.args)}")
+        
+        print(f"\n=== DEBUG: Image Search Filtering ===")
+        print(f"Total houses before filtering: {len(filtered_houses)}")
+        print(f"Filter parameters: search='{search}', project_id='{project_id}', house_type_id='{house_type_id}', feature_id='{feature_id}'")
+        print(f"Price range: {min_price}-{max_price}, Area range: {min_area}-{max_area}, Sort: {sort}")
+        
+        # Debug: Show sample house data structure
+        if filtered_houses:
+            sample_house = filtered_houses[0]
+            print(f"Sample house data keys: {list(sample_house.keys())}")
+            print(f"Sample house p_id: {sample_house.get('p_id')}, t_id: {sample_house.get('t_id')}")
+            print(f"Sample house project: {sample_house.get('project')}, type: {sample_house.get('type')}")
+        
         # Apply search filter
         if search:
+            before_count = len(filtered_houses)
             filtered_houses = [house for house in filtered_houses 
                              if search.lower() in house.get('title', '').lower() 
                              or search.lower() in house.get('description', '').lower()]
+            print(f"After search filter: {before_count} -> {len(filtered_houses)} houses")
         
         # Apply project filter
         if project_id:
-            filtered_houses = [house for house in filtered_houses 
-                             if str(house.get('p_id', '')) == project_id]
+            before_count = len(filtered_houses)
+            print(f"Project filter: Looking for p_id='{project_id}'")
+            matching_houses = []
+            for house in filtered_houses:
+                house_p_id = str(house.get('p_id', ''))
+                if house_p_id == project_id:
+                    matching_houses.append(house)
+                else:
+                    print(f"House {house.get('id')} p_id='{house_p_id}' doesn't match '{project_id}'")
+            filtered_houses = matching_houses
+            print(f"After project filter: {before_count} -> {len(filtered_houses)} houses")
         
         # Apply house type filter
         if house_type_id:
-            filtered_houses = [house for house in filtered_houses 
-                             if str(house.get('t_id', '')) == house_type_id]
+            before_count = len(filtered_houses)
+            print(f"House type filter: Looking for t_id='{house_type_id}'")
+            matching_houses = []
+            for house in filtered_houses:
+                house_t_id = str(house.get('t_id', ''))
+                if house_t_id == house_type_id:
+                    matching_houses.append(house)
+                else:
+                    print(f"House {house.get('id')} t_id='{house_t_id}' doesn't match '{house_type_id}'")
+            filtered_houses = matching_houses
+            print(f"After house type filter: {before_count} -> {len(filtered_houses)} houses")
         
         # Apply feature filter
         if feature_id:
-            # Get houses that have this feature
+            before_count = len(filtered_houses)
+            # Check if this is a bedroom feature
             cur = mysql.connection.cursor()
-            cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
-            house_ids_with_feature = [row[0] for row in cur.fetchall()]
-            cur.close()
+            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (int(feature_id),))
+            feature = cur.fetchone()
             
-            filtered_houses = [house for house in filtered_houses 
-                             if house.get('id') in house_ids_with_feature]
+            if feature:
+                feature_name = feature[0]
+                print(f"Processing feature: {feature_name}")
+                import re
+                bedroom_match = re.search(r'(\d+)\s*ห้องนอน', feature_name, re.IGNORECASE | re.UNICODE)
+                if bedroom_match:
+                    # This is a bedroom filter
+                    bedroom_count = int(bedroom_match.group(1))
+                    print(f"Found bedroom filter: {bedroom_count} bedrooms")
+                    filtered_houses = [house for house in filtered_houses 
+                                     if house.get('bedrooms') == bedroom_count]
+                    print(f"After bedroom filter: {before_count} -> {len(filtered_houses)} houses")
+                else:
+                    # This is a regular feature filter
+                    cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
+                    house_ids_with_feature = [row[0] for row in cur.fetchall()]
+                    print(f"Regular feature filter: {len(house_ids_with_feature)} houses have this feature")
+                    filtered_houses = [house for house in filtered_houses 
+                                     if house.get('id') in house_ids_with_feature]
+                    print(f"After feature filter: {before_count} -> {len(filtered_houses)} houses")
+            cur.close()
         
         # Apply price filter
         if min_price:
