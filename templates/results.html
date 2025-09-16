@@ -5,12 +5,23 @@
 {% endblock %}
 
 {% block content %}
-<div class="bg-white">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
     <!-- Results Header -->
-    <div class="bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-center py-12 shadow-inner">
-        <div class="container mx-auto px-4">
-            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">ผลการค้นหา</h1>
-            <p class="mt-3 text-lg md:text-xl opacity-90">
+    <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.1"><circle cx="30" cy="30" r="2"/></g></svg>');"></div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-16 relative">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-6">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <h1 class="text-4xl md:text-6xl font-bold mb-4 tracking-tight">ผลการค้นหา</h1>
+                <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto">
                 {% if pagination and pagination.total > 0 %}
                     พบ {{ pagination.total }} รายการที่ตรงกับความต้องการของคุณ
                 {% elif houses|length > 0 %}
@@ -19,39 +30,42 @@
                     ไม่พบรายการที่ตรงกับการค้นหา
                 {% endif %}
             </p>
+            </div>
         </div>
     </div>
 
     <!-- Filter Bar Section -->
-    <div class="bg-white py-6 border-b border-gray-200">
-        <div class="container mx-auto px-4">
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="container mx-auto px-4 py-8">
             <!-- Search and Filter Bar -->
-             <form method="GET" action="{{ url_for('search_by_image') }}" class="flex flex-col sm:flex-row items-stretch gap-3 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-5xl mx-auto p-3 sm:p-3">
+            <div class="max-w-6xl mx-auto">
+                <form method="GET" action="{{ url_for('search_by_image') }}" class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                  <!-- Preserve query image if it exists -->
                  {% if query_image %}
                  <input type="hidden" name="query_image" value="{{ query_image }}">
                  {% endif %}
-                <div class="w-full sm:flex-1 min-w-0">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ค้นหา</label>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- Search Input -->
+                        <div class="lg:col-span-1">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ค้นหาบ้าน</label>
                     <div class="relative">
-                        <input type="search" name="search" placeholder="ชื่อ, ประเภท, โครงการ..." 
+                                <input type="search" name="search" placeholder="ชื่อบ้าน, ประเภท, โครงการ..." 
                                value="{{ request.args.get('search', '') }}"
-                               class="w-full px-3 py-2 pr-10 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all duration-200 text-sm sm:text-base">
-                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="w-full px-4 py-3 pl-12 rounded-xl border-2 border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 font-medium">
+                                <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                        </button>
                     </div>
                 </div>
                 
                 <!-- House Type Dropdown -->
-                <div class="w-full sm:flex-1 min-w-0" x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ประเภทบ้าน</label>
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ประเภทบ้าน</label>
                     <div class="relative">
                         <input type="hidden" name="house_type" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
                             <template x-if="selected && selected !== options[0].id">
                                 <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -60,110 +74,115 @@
                             <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                         </button>
                         <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
-                            <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm">
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
                             <template x-for="option in filteredOptions()" :key="option.id">
                                 <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
-                                    <span x-text="option.name"></span>
+                                            <span x-text="option.name" class="text-gray-900"></span>
                                 </div>
                             </template>
                         </div>
                     </div>
                 </div>
-                <!-- Project Dropdown -->
-                <div class="w-full sm:flex-1 min-w-0" x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">จังหวัดในโครงการ</label>
-                    <div class="relative">
-                        <input type="hidden" name="project" :value="selected">
-                        <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
-                            <span x-text="selectedName()" class="truncate"></span>
-                            <template x-if="selected && selected !== options[0].id">
-                                <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </template>
-                            <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                        <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
-                            <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm">
-                            <template x-for="option in filteredOptions()" :key="option.id">
-                                <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
-                                    <span x-text="option.name"></span>
+                        <!-- Project Dropdown -->
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาจังหวัดในโครงการ'}, {% for project in projects %}{id: '{{ project.id }}', name: '{{ project.name }}'},{% endfor %}], selected: '{{ request.args.get('project', '') }}', name: 'project'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">จังหวัดในโครงการ</label>
+                            <div class="relative">
+                                <input type="hidden" name="project" :value="selected">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
+                                    <template x-if="selected && selected !== options[0].id">
+                                        <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </template>
+                                    <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
+                                    <template x-for="option in filteredOptions()" :key="option.id">
+                                        <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
+                                            <span x-text="option.name" class="text-gray-900"></span>
+                                        </div>
+                                    </template>
                                 </div>
-                            </template>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                 <!-- Feature Dropdown -->
-                 <div class="w-full sm:flex-1 min-w-0" x-data="dropdown({options: [{id: '', name: 'ค้นหาลักษณะบ้าน'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ลักษณะบ้าน</label>
-                    <div class="relative">
-                            <input type="hidden" name="feature" :value="selected">
-                            <button type="button" class="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-400 focus:border-blue-400 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
-                                <span x-text="selectedName()" class="truncate"></span>
-                                <template x-if="selected && selected !== options[0].id">
-                                    <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        
+                        <!-- House Features Dropdown -->
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาลักษณะบ้าน'}, {% for feature in features %}{id: '{{ feature.id }}', name: '{{ feature.name }}'},{% endfor %}], selected: '{{ request.args.get('feature', '') }}', name: 'feature'})">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">ลักษณะบ้าน</label>
+                            <div class="relative">
+                                <input type="hidden" name="feature" :value="selected">
+                                <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
+                                    <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
+                                    <template x-if="selected && selected !== options[0].id">
+                                        <svg @click.stop="select(options[0].id)" class="w-4 h-4 text-gray-400 hover:text-red-400 cursor-pointer absolute right-8 top-1/2 -translate-y-1/2 transition-colors duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </template>
+                                    <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
+                                    <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm text-gray-900 placeholder-gray-500">
+                                    <template x-for="option in filteredOptions()" :key="option.id">
+                                        <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
+                                            <span x-text="option.name" class="text-gray-900"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Button -->
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">
+                                <span class="flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                                     </svg>
-                                </template>
-                                <svg class="w-4 h-4 ml-2 text-gray-400 transition-transform duration-200" :class="{'rotate-180': open}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                    ค้นหา
+                                </span>
                             </button>
-                        <div x-show="open" @click.away="open = false" class="absolute z-20 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto transition-all duration-200" x-transition>
-                            <input type="text" x-model="search" placeholder="ค้นหา..." class="w-full px-3 py-2 border-b border-gray-100 focus:outline-none focus:ring-0 text-sm">
-                            <template x-for="option in filteredOptions()" :key="option.id">
-                                <div @click="select(option.id)" class="px-3 py-2 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-150" :class="{'font-semibold text-blue-600 bg-blue-50': selected === option.id}">
-                                    <span x-text="option.name"></span>
-                                </div>
-                            </template>
                         </div>
                     </div>
-                </div>
-                
-                <div class="w-full sm:w-auto mt-2 sm:mt-6">
-                    <button type="submit" class="w-full flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 sm:py-2 rounded-xl font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-md hover:shadow-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35" />
-                    </svg>
-                    <span>ค้นหา</span>
-                </button>
+                </form>
             </div>
-        </form>
     </div>
     
     <!-- Sort Options -->
-    <div class="bg-gray-50 py-4">
-        <div class="container mx-auto px-4">
+    <div class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 py-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex flex-wrap items-center gap-4">
                     <span class="text-sm font-medium text-gray-700">เรียงตาม:</span>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='similarity') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort', 'similarity') == 'similarity' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort', 'similarity') == 'similarity' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ความคล้ายกัน
                         </a>
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_low') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'price_low' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'price_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ราคาต่ำ-สูง
                         </a>
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_high') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'price_high' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'price_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ราคาสูง-ต่ำ
                         </a>
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_low') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'area_low' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'area_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             พื้นที่เล็ก-ใหญ่
                         </a>
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_high') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'area_high' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'area_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             พื้นที่ใหญ่-เล็ก
                         </a>
                         <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='newest') }}" 
-                           class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {{ 'bg-blue-600 text-white' if request.args.get('sort') == 'newest' else 'bg-white text-gray-700 hover:bg-gray-100' }}">
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'newest' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ใหม่ล่าสุด
                         </a>
                     </div>
                 </div>
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 font-medium">
                     {% if houses|length > 0 %}
                         แสดง {{ houses|length }} รายการ
                     {% endif %}
@@ -174,67 +193,129 @@
 </div>
 
     <!-- Main Content: House Grid -->
-    <main class="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+    <main class="container mx-auto px-4 py-12">
         <!-- Query Image Preview -->
         {% if query_image %}
-        <div class="mb-12 flex flex-col items-center">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">รูปที่ใช้ค้นหา</h3>
-            <img src="{{ url_for('static', filename='uploads/' + query_image) }}" alt="Query Image" class="w-48 h-48 object-cover rounded-2xl border-4 border-white shadow-xl transform hover:scale-105 transition-transform duration-300">
+        <div class="mb-16 flex flex-col items-center">
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">รูปที่ใช้ค้นหา</h3>
+                <div class="relative group">
+                    <img src="{{ url_for('static', filename='uploads/' + query_image) }}" 
+                         alt="Query Image" 
+                         class="w-64 h-64 object-cover rounded-2xl shadow-lg transform group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+            </div>
         </div>
         {% endif %}
 
         {% if houses|length == 0 %}
             <div class="flex flex-col items-center justify-center py-24">
-                <svg class="w-24 h-24 mb-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <div class="text-2xl font-bold text-gray-400 mb-2">ไม่พบบ้านที่ตรงกับการค้นหา</div>
-                <div class="text-gray-500">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</div>
+                <div class="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mb-8">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-400 mb-4">ไม่พบบ้านที่ตรงกับการค้นหา</h3>
+                <p class="text-gray-500 text-center max-w-md mb-8">ลองเปลี่ยนคำค้นหาหรือปรับตัวกรองใหม่อีกครั้ง</p>
+                <a href="{{ url_for('houses_list') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    ดูบ้านทั้งหมด
+                </a>
             </div>
         {% else %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-6 max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for house in houses %}
-                <a href="{{ url_for('house_detail', house_id=house.id) }}" class="group block bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full flex flex-col">
+            <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1">
+                <!-- Image Container -->
                     <div class="relative overflow-hidden">
-                        <img src="{{ house.main_image_url if house.main_image_url else '/static/img/OIP.jpg' }}" alt="Image of {{ house.title }}" class="w-full h-48 sm:h-52 md:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
-                        <div class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{ house.type_name }}</div>
+                    <img src="{{ house.main_image_url if house.main_image_url else '/static/img/OIP.jpg' }}" 
+                         alt="{{ house.title }}" 
+                         class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                         onerror="this.onerror=null; this.src='/static/img/OIP.jpg';">
+                    
+                    <!-- Overlay Gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    <!-- Similarity Badge (if available) -->
                 {% if house.similarity is defined and house.similarity is not none %}
-                <div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">คล้าย {{ (house.similarity * 100) | round(1) }}%</div>
-                {% endif %}
+                    <div class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        คล้าย {{ (house.similarity * 100) | round(1) }}%
                     </div>
-                    <div class="p-4 flex flex-col flex-grow">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ house.title }}</h3>
-                            <div class="flex items-center gap-2 text-gray-700 text-sm mb-1 flex-wrap">
-                                <img src="{{ url_for('static', filename='img/icons/location_icon.png') }}" alt="Location Icon" class="w-4 h-4 text-green-500">
-                                {{ house.location or house.project_name or 'N/A' }}
-                                <span class="mx-1 text-gray-400"></span>
+                    {% endif %}
+                    
+                    <!-- House Type Badge -->
+                    {% if house.type_name %}
+                    <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        {{ house.type_name }}
+                    </div>
+                {% endif %}
+                    
+                    <!-- Quick View Button -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <a href="{{ url_for('house_detail', house_id=house.id) }}" 
+                           class="bg-white text-gray-800 px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-gray-50 transition-colors duration-200">
+                            ดูรายละเอียด
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-6">
+                    <!-- Title -->
+                    <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                        {{ house.title }}
+                    </h3>
+                    
+                    <!-- Location -->
+                    <div class="flex items-center gap-2 text-gray-600 mb-4">
+                        <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="text-sm truncate">{{ house.location or house.project_name or 'N/A' }}</span>
+                    </div>
+                    
+                    <!-- Features -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mx-auto mb-2">
+                                <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-5 h-5">
                             </div>
-                            <div class="mt-3 sm:mt-4 flex items-center justify-between text-sm text-gray-800">
-                                <div class="flex items-center space-x-4">
-                                    <span class="flex items-center">
-                                        <img src="{{ url_for('static', filename='img/icons/bed_icon.png') }}" alt="Bedrooms" class="w-4 h-4 mr-1">
-                                        <span class="whitespace-nowrap">{{ house.bedrooms }} ห้องนอน</span>
-                                    </span>
-                                    <span class="flex items-center">
-                                        <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-4 h-4 mr-1">
-                                        <span class="whitespace-nowrap">{{ house.bathrooms }} ห้องน้ำ</span>
-                                    </span>
-                                    {% if house.area is not none %}
-                                    <span class="flex items-center">
-                                        <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-4 h-4 mr-1">
-                                        <span class="whitespace-nowrap">{{ "{:,.0f}".format(house.area | float) }} ตร.ม.</span>
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
+                            <div class="text-sm font-semibold text-gray-900">{{ house.bedrooms }}</div>
+                            <div class="text-xs text-gray-500">ห้องนอน</div>
                         </div>
-                        <div>
-                            <div class="border-t border-gray-200 mt-3 sm:mt-4 mb-2"></div>
-                            <div class="text-blue-700 font-bold text-base sm:text-lg text-right">
+                        <div class="text-center">
+                            <div class="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mx-auto mb-2">
+                                <img src="{{ url_for('static', filename='img/icons/bath_icon.png') }}" alt="Bathrooms" class="w-5 h-5">
+                            </div>
+                            <div class="text-sm font-semibold text-gray-900">{{ house.bathrooms }}</div>
+                            <div class="text-xs text-gray-500">ห้องน้ำ</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mx-auto mb-2">
+                                <img src="{{ url_for('static', filename='img/icons/area_icon.png') }}" alt="Area" class="w-5 h-5">
+                            </div>
+                            <div class="text-sm font-semibold text-gray-900">
+                                    {% if house.area is not none %}
+                                    {{ "{:,.0f}".format(house.area | float) }}
+                                {% else %}
+                                    N/A
+                                    {% endif %}
+                            </div>
+                            <div class="text-xs text-gray-500">ตร.ม.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div class="border-t border-gray-100 pt-4">
+                        <div class="flex items-end justify-end">
+                            <div class="text-2xl font-bold text-blue-600">
                                 ฿{{ "{:,.0f}".format(house.price | float) }}
                             </div>
                         </div>
                     </div>
-                </a>
+                </div>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
@@ -314,4 +395,54 @@
          });
      });
  </script>
+
+<!-- Custom CSS for line-clamp and other utilities -->
+<style>
+/* Line clamp utility for text truncation */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Ensure consistent card heights */
+.group {
+    height: 100%;
+}
+
+/* Smooth transitions for all interactive elements */
+.group:hover {
+    transform: translateY(-4px);
+}
+
+/* Ensure proper image scaling */
+.group img {
+    transition: transform 0.5s ease;
+}
+
+.group:hover img {
+    transform: scale(1.1);
+}
+
+/* Custom scrollbar for dropdowns */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
 {% endblock %} 

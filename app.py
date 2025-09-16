@@ -363,8 +363,8 @@ class admins(UserMixin):
         return False
 
 class LoginForm(FlaskForm):
-    username = StringField('Username', [validators.InputRequired()])
-    password = PasswordField('Password', [validators.InputRequired()])
+    username = StringField('ชื่อผู้ใช้', [validators.InputRequired()])
+    password = PasswordField('รหัสผ่าน', [validators.InputRequired()])
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
