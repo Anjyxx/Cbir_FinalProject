@@ -275,6 +275,14 @@ os.makedirs(IMG_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['IMG_FOLDER'] = IMG_FOLDER
 
+# Allowed file extensions for uploads
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    """Check if the uploaded file has an allowed extension"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Ensure all HTML responses are UTF-8
 @app.after_request
 def set_charset(response):
@@ -2023,13 +2031,14 @@ def admin_edit_project(project_id):
                     print(f"DEBUG: Saved new image to {filepath}")
                     
                     # Delete old image if it's not the default
-                    old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], p_image)
-                    if p_image and p_image != 'default_project.jpg' and os.path.exists(old_image_path):
-                        try:
-                            os.remove(old_image_path)
-                            print(f"DEBUG: Removed old image: {old_image_path}")
-                        except Exception as e:
-                            print(f"WARNING: Could not remove old image: {e}")
+                    if p_image and p_image != 'default_project.jpg':
+                        old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], p_image)
+                        if os.path.exists(old_image_path):
+                            try:
+                                os.remove(old_image_path)
+                                print(f"DEBUG: Removed old image: {old_image_path}")
+                            except Exception as e:
+                                print(f"WARNING: Could not remove old image: {e}")
                     
                     p_image = unique_filename
             
@@ -3632,6 +3641,10 @@ def houses_list():
             if bedroom_match:
                 bedrooms = bedroom_match.group(1)  # Extract the number of bedrooms
                 print(f"Detected bedroom filter in search: {bedrooms}")
+                # Apply bedroom filter to the query
+                house_query += " AND h.bedrooms = %s"
+                count_query += " AND h.bedrooms = %s"
+                query_params.append(int(bedrooms))
                 # Remove the bedroom part from search terms
                 search_query = re.sub(r'\d+\s*ห้องนอน', '', search_query, flags=re.IGNORECASE | re.UNICODE).strip()
             
