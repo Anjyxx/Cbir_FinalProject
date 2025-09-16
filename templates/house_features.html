@@ -137,16 +137,9 @@
                 <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-8">ลักษณะบ้าน</h1>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     {% for feature in features %}
-                    {% if 'ห้องนอน' in feature.name %}
-                    <!-- Special handling for bedroom filters -->
-                    {% set bedroom_count = feature.name.split(' ')[0] %}
-                    <a href="{{ url_for('houses_list', bedrooms=bedroom_count) }}"
+                    <!-- All features use the same feature filter -->
+                    <a href="{{ url_for('houses_list', feature=feature.id) }}"
                        class="group bg-white rounded-2xl shadow-lg border border-blue-100 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col">
-                    {% else %}
-                    <!-- Regular feature filter -->
-                    <a href="{{ url_for('houses_by_feature', feature_id=feature.id) }}"
-                       class="group bg-white rounded-2xl shadow-lg border border-blue-100 hover:border-blue-400 hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col">
-                    {% endif %}
                         <div class="relative w-full h-48 bg-gray-100 overflow-hidden">
                             {% set image_path = 'img/' ~ feature.image %}
                             {% set full_image_path = url_for('static', filename=image_path) %}

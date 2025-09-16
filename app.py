@@ -2444,8 +2444,22 @@ def index():
             house_query += " AND h.p_id = %s"
             house_params.append(selected_project)
         if selected_feature:
-            house_query += " AND h.h_id IN (SELECT h_id FROM house_features WHERE f_id = %s)"
-            house_params.append(selected_feature)
+            # Check if this is a bedroom feature
+            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (selected_feature,))
+            feature = cur.fetchone()
+            if feature:
+                f_name = feature[0]
+                import re
+                bedroom_match = re.search(r'(\d+)\s*ห้องนอน', f_name)
+                if bedroom_match:
+                    # This is a bedroom filter
+                    bedroom_count = int(bedroom_match.group(1))
+                    house_query += " AND h.bedrooms = %s"
+                    house_params.append(bedroom_count)
+                else:
+                    # This is a regular feature filter
+                    house_query += " AND h.h_id IN (SELECT h_id FROM house_feature_mapping WHERE feature_id = %s)"
+                    house_params.append(selected_feature)
         if search_query:
             sq = f"%{search_query}%"
             house_query += """
@@ -3608,72 +3622,82 @@ def houses_list():
         # Initialize query parameters
         query_params = []
         
-        # Add search conditions if search query exists
+        # Process search query if it exists
         if search_query:
             print(f"\n=== DEBUG: Search Query ===")
             print(f"Original search query: {search_query}")
             
-            # Convert search query to lowercase for case-insensitive search
-            search_terms = search_query.lower().split()
-            print(f"Search terms: {search_terms}")
+            # Check for bedroom pattern like "2 ห้องนอน"
+            bedroom_match = re.search(r'(\d+)\s*ห้องนอน', search_query, re.IGNORECASE | re.UNICODE)
+            if bedroom_match:
+                bedrooms = bedroom_match.group(1)  # Extract the number of bedrooms
+                print(f"Detected bedroom filter in search: {bedrooms}")
+                # Remove the bedroom part from search terms
+                search_query = re.sub(r'\d+\s*ห้องนอน', '', search_query, flags=re.IGNORECASE | re.UNICODE).strip()
             
-            # For each search term, create conditions that match any of the fields
-            term_conditions = []
-            
-            for term in search_terms:
-                if len(term) < 2 and not term.isdigit():
-                    continue
-                    
-                # Create a list of conditions for this term
-                conditions = [
-                    "h.h_title LIKE %s",
-                    "h.h_description LIKE %s",
-                    "p.p_name LIKE %s",
-                    "t.t_name LIKE %s"
-                ]
+            # Process remaining search terms if any
+            if search_query.strip():
+                # Split on whitespace but keep Thai words together
+                search_terms = re.findall(r'[^\s\d]+|\d+', search_query.lower())
+                print(f"Search terms after processing: {search_terms}")
                 
-                # Add the term parameter for each condition
-                term_param = f"%{term}%"
-                query_params.extend([term_param] * len(conditions))
+                # For each search term, create conditions that match any of the fields
+                term_conditions = []
                 
-                # If the term is a number, also search in numeric fields
-                if term.isdigit():
-                    num = int(term)
-                    numeric_conditions = [
-                        "h.bedrooms = %s",
-                        "h.bathrooms = %s",
-                        "h.living_area = %s"
+                for term in search_terms:
+                    if len(term) < 2 and not term.isdigit():
+                        continue
+                        
+                    # Create a list of conditions for this term with proper collation for Thai
+                    conditions = [
+                        "LOWER(CONVERT(h.h_title USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
+                        "LOWER(CONVERT(h.h_description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
+                        "LOWER(CONVERT(p.p_name USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
+                        "LOWER(CONVERT(t.t_name USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)"
                     ]
-                    conditions.extend(numeric_conditions)
-                    query_params.extend([num] * len(numeric_conditions))
+                    
+                    # Add the term parameter for each condition
+                    term_param = f"%{term}%"
+                    query_params.extend([term_param] * len(conditions))
+                    
+                    # If the term is a number, also search in numeric fields
+                    if term.isdigit():
+                        num = int(term)
+                        numeric_conditions = [
+                            "h.bedrooms = %s",
+                            "h.bathrooms = %s",
+                            "h.living_area = %s"
+                        ]
+                        conditions.extend(numeric_conditions)
+                        query_params.extend([num] * len(numeric_conditions))
+                    
+                    # Add description fields if they exist
+                    if has_p_description:
+                        conditions.append("LOWER(CONVERT(p.description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)")
+                        query_params.append(term_param)
+                    
+                    if has_t_description:
+                        conditions.append("LOWER(CONVERT(t.t_description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)")
+                        query_params.append(term_param)
+                    
+                    # Combine conditions with OR for this term
+                    if conditions:
+                        term_condition = " OR ".join(conditions)
+                        term_conditions.append(f"({term_condition})")
                 
-                # Add description fields if they exist
-                if has_p_description:
-                    conditions.append("p.description LIKE %s")
-                    query_params.append(term_param)
-                
-                if has_t_description:
-                    conditions.append("t.t_description LIKE %s")
-                    query_params.append(term_param)
-                
-                # Combine conditions with OR for this term
-                if conditions:
-                    term_condition = " OR ".join(conditions)
-                    term_conditions.append(f"({term_condition})")
+                # Combine all term conditions with AND
+                if term_conditions:
+                    search_condition = " AND ".join(term_conditions)
+                    house_query += f" AND ({search_condition})"
+                    count_query += f" AND ({search_condition})"
+                    
+                    print(f"\n=== DEBUG: Search Condition ===")
+                    print(f"Search condition: {search_condition}")
+                    print(f"Query params: {query_params}")
             
-            # Combine all term conditions with AND
-            if term_conditions:
-                search_condition = " AND ".join(term_conditions)
-                house_query += f" AND ({search_condition})"
-                count_query += f" AND ({search_condition})"
-                
-                print(f"\n=== DEBUG: Search Condition ===")
-                print(f"Search condition: {search_condition}")
-                print(f"Query params: {query_params}")
-                
-                print(f"\n=== DEBUG: Final Queries ===")
-                print(f"House query: {house_query}")
-                print(f"Count query: {count_query}")
+            print(f"\n=== DEBUG: Final Queries ===")
+            print(f"House query: {house_query}")
+            print(f"Count query: {count_query}")
         
         # Add project filter
         if selected_project and selected_project != 'all':
@@ -3687,29 +3711,56 @@ def houses_list():
             count_query += " AND h.t_id = %s"
             query_params.append(selected_type)
                 
-        # Add bedrooms filter
-        if bedrooms and bedrooms.isdigit() and int(bedrooms) > 0:
-            house_query += " AND h.bedrooms = %s"
-            count_query += " AND h.bedrooms = %s"
-            query_params.append(int(bedrooms))
-            
-        # Add feature filter
+        # Handle bedroom filtering from feature selection
         if selected_feature and selected_feature != 'all':
-            print(f"\n=== DEBUG: Applying Feature Filter ===")
+            print(f"\n=== DEBUG: Processing Bedroom Filter ===")
             print(f"Selected Feature ID: {selected_feature}")
-            house_query += " AND h.f_id = %s"
-            count_query += " AND h.f_id = %s"
-            query_params.append(int(selected_feature))
-            print(f"Updated house_query: {house_query}")
-            print(f"Updated query_params: {query_params}")
             
-            # Debug: Print the feature being filtered
-            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (int(selected_feature),))
-            feature = cur.fetchone()
-            if feature:
-                print(f"Filtering by feature: {feature['f_name']}")
-            else:
-                print(f"Warning: Feature ID {selected_feature} not found in house_features table")
+            try:
+                # Get the feature name to check if it's a bedroom filter
+                cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (int(selected_feature),))
+                feature = cur.fetchone()
+                
+                if feature:
+                    feature_name = feature['f_name']
+                    print(f"Processing feature: {feature_name}")
+                    
+                    # Check if this is a bedroom filter (e.g., "2 ห้องนอน")
+                    bedroom_match = re.search(r'(\d+)\s*ห้องนอน', feature_name, re.IGNORECASE | re.UNICODE)
+                    if bedroom_match:
+                        bedrooms = int(bedroom_match.group(1))
+                        print(f"Found bedroom filter: {bedrooms} bedrooms")
+                        
+                        # Add bedroom filter to both queries
+                        house_query += " AND h.bedrooms = %s"
+                        count_query += " AND h.bedrooms = %s"
+                        
+                        # Add the bedroom count to query parameters (only once for house_query)
+                        query_params.append(bedrooms)
+                        
+                        print(f"Updated house_query: {house_query}")
+                        print(f"Updated query_params: {query_params}")
+                        
+                        # Debug: Test the actual query
+                        print(f"\n=== DEBUG: Testing Query ===")
+                        test_query = f"SELECT h.h_id, h.h_title, h.bedrooms FROM house h WHERE h.status = 'available' AND h.bedrooms = {bedrooms}"
+                        print(f"Test query: {test_query}")
+                        cur.execute(test_query)
+                        test_results = cur.fetchall()
+                        print(f"Test results: {test_results}")
+                        
+                    else:
+                        print(f"Not a bedroom filter, using direct feature ID matching")
+                        house_query += " AND h.f_id = %s"
+                        count_query += " AND h.f_id = %s"
+                        query_params.append(int(selected_feature))
+                else:
+                    print(f"Warning: Feature ID {selected_feature} not found in house_features table")
+                    
+            except Exception as e:
+                print(f"Error processing feature filter: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 
         # Add price range filter
         if price_range and price_range != '':
