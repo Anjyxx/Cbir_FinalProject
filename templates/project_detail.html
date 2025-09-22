@@ -1,0 +1,241 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ project.p_name }} - Project Details{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Prompt', sans-serif;
+    }
+    .site-plan-container {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .site-plan-image {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    .unit-marker {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        background: #3b82f6;
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .unit-marker:hover {
+        background: #1d4ed8;
+        transform: scale(1.2);
+        z-index: 10;
+    }
+    .unit-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 20;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .unit-marker:hover .unit-tooltip {
+        opacity: 1;
+    }
+</style>
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Header Section -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Project Image -->
+                <div class="lg:w-1/3">
+                    {% if project.p_image %}
+                    <img src="{{ url_for('static', filename=project.p_image) }}" 
+                         alt="{{ project.p_name }}" 
+                         class="w-full h-64 object-cover rounded-lg shadow-md">
+                    {% endif %}
+                </div>
+                
+                <!-- Project Info -->
+                <div class="lg:w-2/3">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ project.p_name }}</h1>
+                    <p class="text-gray-600 mb-4">{{ project.description }}</p>
+                    <div class="flex items-center text-sm text-gray-500 mb-4">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        {{ project.address }}
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                            {{ units|length }} Units Available
+                        </span>
+                        {% if project.site_plan_image %}
+                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                            Site Plan Available
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Site Plan Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">แผนผังโครงการ</h2>
+                    
+                    {% if project.site_plan_image %}
+                    <div class="site-plan-container" id="sitePlanContainer">
+                        <img src="{{ url_for('static', filename='uploads/' ~ project.site_plan_image) }}" 
+                             alt="Site Plan" 
+                             class="site-plan-image"
+                             id="sitePlanImage">
+                        
+                        <!-- Unit Markers will be added here by JavaScript -->
+                    </div>
+                    
+                    <div class="mt-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <p class="text-sm text-gray-600">คลิกที่จุดสีน้ำเงินเพื่อดูรายละเอียดของแต่ละยูนิต</p>
+                        <a href="{{ url_for('houses_by_project', project_id=project.p_id) }}" 
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            ดูรายการบ้านทั้งหมด
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 bg-gray-50 rounded-lg">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        <p class="text-gray-500">แผนผังโครงการยังไม่พร้อมใช้งาน</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Units List -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">รายการยูนิต</h3>
+                    
+                    {% if units %}
+                    <div class="space-y-4">
+                        {% for house in units %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-semibold text-gray-900">{{ house.h_title }}</h4>
+                                {% if house.unit_number %}
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                    {{ house.unit_number }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="text-sm text-gray-600 mb-2">
+                                <p class="font-medium text-green-600">฿{{ "{:,.0f}".format(house.price) }}</p>
+                                {% if house.unit_brand %}
+                                <p class="text-gray-500">{{ house.unit_brand }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                    {% if house.bedrooms %}
+                                    <span>{{ house.bedrooms }} ห้องนอน</span>
+                                    {% endif %}
+                                    {% if house.bathrooms %}
+                                    <span>{{ house.bathrooms }} ห้องน้ำ</span>
+                                    {% endif %}
+                                </div>
+                                <a href="{{ url_for('house_detail', house_id=house.h_id) }}" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    ดูรายละเอียด →
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <p>ยังไม่มียูนิตในโครงการนี้</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sitePlanContainer = document.getElementById('sitePlanContainer');
+    const sitePlanImage = document.getElementById('sitePlanImage');
+    
+    if (sitePlanContainer && sitePlanImage) {
+        // Get unit data from the template
+        const units = {{ units|tojson }};
+        
+        // Wait for image to load
+        sitePlanImage.onload = function() {
+            const containerRect = sitePlanContainer.getBoundingClientRect();
+            const imageRect = sitePlanImage.getBoundingClientRect();
+            
+            // Calculate scale factors
+            const scaleX = imageRect.width / {{ project.site_plan_width or 1 }};
+            const scaleY = imageRect.height / {{ project.site_plan_height or 1 }};
+            
+            // Add unit markers
+            units.forEach(function(unit) {
+                if (unit.unit_x_position && unit.unit_y_position) {
+                    const marker = document.createElement('div');
+                    marker.className = 'unit-marker';
+                    marker.style.left = (unit.unit_x_position * scaleX) + 'px';
+                    marker.style.top = (unit.unit_y_position * scaleY) + 'px';
+                    marker.textContent = unit.unit_number || '?';
+                    
+                    // Add tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'unit-tooltip';
+                    tooltip.textContent = unit.h_title + ' - ฿' + unit.price.toLocaleString();
+                    marker.appendChild(tooltip);
+                    
+                    // Add click handler
+                    marker.addEventListener('click', function() {
+                        window.location.href = '/house/' + unit.h_id;
+                    });
+                    
+                    sitePlanContainer.appendChild(marker);
+                }
+            });
+        };
+    }
+});
+</script>
+{% endblock %}

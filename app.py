@@ -273,15 +273,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(IMG_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['IMG_FOLDER'] = IMG_FOLDER
 
-# Allowed file extensions for uploads
+# --- File Upload Configuration ---
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
-    """Check if the uploaded file has an allowed extension"""
+    """Check if file extension is allowed"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+app.config['IMG_FOLDER'] = IMG_FOLDER
 
 # Ensure all HTML responses are UTF-8
 @app.after_request
@@ -324,7 +325,7 @@ def get_project_data(project_id):
     cur = None
     try:
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        query = "SELECT p_id, p_name, description, a_id, address, p_image, created_at, updated_at FROM project WHERE p_id = %s"
+        query = "SELECT p_id, p_name, description, a_id, address, p_image, site_plan_image, site_plan_width, site_plan_height, created_at, updated_at FROM project WHERE p_id = %s"
         cur.execute(query, (project_id,))
         project_data = cur.fetchone()
         
@@ -332,6 +333,9 @@ def get_project_data(project_id):
             project_data['p_image'] = project_data.get('p_image', 'default_project.jpg')
             project_data['address'] = project_data.get('address', '')
             project_data['description'] = project_data.get('description', '')
+            project_data['site_plan_image'] = project_data.get('site_plan_image', '')
+            project_data['site_plan_width'] = project_data.get('site_plan_width', 0)
+            project_data['site_plan_height'] = project_data.get('site_plan_height', 0)
         return project_data
         
     except Exception as e:
@@ -1545,6 +1549,12 @@ def admin_add_house():
             no_of_floors = request.form.get('no_of_floors')
             status = request.form.get('status')
             
+            # Unit management fields
+            unit_number = request.form.get('unit_number', '')
+            unit_brand = request.form.get('unit_brand', '')
+            unit_x_position = request.form.get('unit_x_position', 0)
+            unit_y_position = request.form.get('unit_y_position', 0)
+            
             # Retrieve the single feature ID (correctly)
             f_id = request.form.get('f_id')
             
@@ -1559,11 +1569,13 @@ def admin_add_house():
             # === 2. Insert into 'house' table (including f_id) ===
             sql = """
                 INSERT INTO house (h_title, h_description, price, t_id, p_id, 
-                                 bedrooms, bathrooms, living_area, parking_space, no_of_floors, f_id, status, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                 bedrooms, bathrooms, living_area, parking_space, no_of_floors, f_id, status, 
+                                 unit_number, unit_brand, unit_x_position, unit_y_position, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """
             values = (h_title, h_description, price, t_id, p_id, 
-                      bedrooms, bathrooms, living_area, parking_space, no_of_floors, f_id, status)
+                      bedrooms, bathrooms, living_area, parking_space, no_of_floors, f_id, status,
+                      unit_number, unit_brand, unit_x_position, unit_y_position)
             
             cur.execute(sql, values)
             house_id = cur.lastrowid
@@ -1655,6 +1667,12 @@ def admin_edit_house(id):
             status = request.form.get('status')
             f_id = request.form.get('f_id')
             
+            # Unit management fields
+            unit_number = request.form.get('unit_number', '')
+            unit_brand = request.form.get('unit_brand', '')
+            unit_x_position = request.form.get('unit_x_position', 0)
+            unit_y_position = request.form.get('unit_y_position', 0)
+            
             # Use .get() with a default of None for optional fields like lat/long
             latitude = request.form.get('latitude')
             longitude = request.form.get('longitude')
@@ -1663,12 +1681,14 @@ def admin_edit_house(id):
             update_sql = """
                 UPDATE house SET h_title=%s, h_description=%s, price=%s, t_id=%s, 
                 p_id=%s, bedrooms=%s, bathrooms=%s, living_area=%s, parking_space=%s, 
-                no_of_floors=%s, f_id=%s, status=%s, latitude=%s, longitude=%s
+                no_of_floors=%s, f_id=%s, status=%s, latitude=%s, longitude=%s,
+                unit_number=%s, unit_brand=%s, unit_x_position=%s, unit_y_position=%s
                 WHERE h_id=%s
             """
-            cur.execute(update_sql, (h_title, h_description, price, t_id, p_id, 
+            cur.execute(update_sql, (h_title, h_description, price, t_id, p_id,
                                      bedrooms, bathrooms, living_area, parking_space, 
-                                     no_of_floors, f_id, status, latitude, longitude, id))
+                                     no_of_floors, f_id, status, latitude, longitude,
+                                     unit_number, unit_brand, unit_x_position, unit_y_position, id))
             
             # Handle new image uploads
             new_images = request.files.getlist('house_images')
@@ -2003,8 +2023,11 @@ def admin_edit_project(project_id):
         address = request.form.get('address', '')
         status = request.form.get('status', 'active')
         
-        # Keep existing image by default
+        # Keep existing images by default
         p_image = project_data.get('p_image')
+        site_plan_image = project_data.get('site_plan_image')
+        site_plan_width = project_data.get('site_plan_width', 0)
+        site_plan_height = project_data.get('site_plan_height', 0)
         
         # Debug log form data
         print(f"DEBUG: Form data - Name: {p_name}, Description: {description}, Address: {address}")
@@ -2031,16 +2054,56 @@ def admin_edit_project(project_id):
                     print(f"DEBUG: Saved new image to {filepath}")
                     
                     # Delete old image if it's not the default
-                    if p_image and p_image != 'default_project.jpg':
-                        old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], p_image)
-                        if os.path.exists(old_image_path):
-                            try:
-                                os.remove(old_image_path)
-                                print(f"DEBUG: Removed old image: {old_image_path}")
-                            except Exception as e:
-                                print(f"WARNING: Could not remove old image: {e}")
+                    old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], p_image)
+                    if p_image and p_image != 'default_project.jpg' and os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                            print(f"DEBUG: Removed old image: {old_image_path}")
+                        except Exception as e:
+                            print(f"WARNING: Could not remove old image: {e}")
                     
                     p_image = unique_filename
+            
+            # Handle site plan image upload
+            if 'site_plan_image' in request.files and request.files['site_plan_image'].filename != '':
+                from werkzeug.utils import secure_filename
+                import os
+                from PIL import Image
+                file = request.files['site_plan_image']
+                if file and allowed_file(file.filename):
+                    # Ensure upload directory exists
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                    
+                    # Generate a unique filename
+                    filename = secure_filename(file.filename)
+                    base, ext = os.path.splitext(filename)
+                    unique_filename = f"siteplan_{base}_{int(time.time())}{ext}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                    
+                    # Save the file
+                    file.save(filepath)
+                    print(f"DEBUG: Saved site plan image to {filepath}")
+                    
+                    # Get image dimensions
+                    try:
+                        with Image.open(filepath) as img:
+                            site_plan_width, site_plan_height = img.size
+                            print(f"DEBUG: Site plan dimensions: {site_plan_width}x{site_plan_height}")
+                    except Exception as e:
+                        print(f"WARNING: Could not get site plan dimensions: {e}")
+                        site_plan_width, site_plan_height = 0, 0
+                    
+                    # Delete old site plan image if it exists
+                    if site_plan_image and site_plan_image != 'default_siteplan.jpg':
+                        old_site_plan_path = os.path.join(app.config['UPLOAD_FOLDER'], site_plan_image)
+                        if os.path.exists(old_site_plan_path):
+                            try:
+                                os.remove(old_site_plan_path)
+                                print(f"DEBUG: Removed old site plan image: {old_site_plan_path}")
+                            except Exception as e:
+                                print(f"WARNING: Could not remove old site plan image: {e}")
+                    
+                    site_plan_image = unique_filename
             
             # Validation
             if not p_name:
@@ -2074,6 +2137,15 @@ def admin_edit_project(project_id):
             
             update_fields.append("p_image = %s")
             params.append(p_image)
+            
+            update_fields.append("site_plan_image = %s")
+            params.append(site_plan_image)
+            
+            update_fields.append("site_plan_width = %s")
+            params.append(site_plan_width)
+            
+            update_fields.append("site_plan_height = %s")
+            params.append(site_plan_height)
             
             # Always update the updated_at timestamp
             update_fields.append("updated_at = NOW()")
@@ -3215,7 +3287,14 @@ def houses_by_type(type_id):
 @app.route('/projects')
 def projects_page():
     cur = mysql.connection.cursor()
-    cur.execute("SELECT p_id as id, p_name as name, COALESCE(p_image, 'project_placeholder.jpg') as image FROM project WHERE status = 'active'")
+    cur.execute("""
+        SELECT p_id as id, p_name as name, 
+               COALESCE(p_image, 'project_placeholder.jpg') as image,
+               site_plan_image,
+               (SELECT COUNT(*) FROM house WHERE p_id = project.p_id AND status NOT IN ('inactive', 'sold')) as unit_count
+        FROM project 
+        WHERE status = 'active'
+    """)
     projects = dict_fetchall(cur)
     cur.close()
     return render_template('projects.html', projects=projects)
@@ -3469,6 +3548,48 @@ def check_house_images():
         if 'cur' in locals() and cur:
             cur.close()
 
+@app.route('/project/<int:project_id>')
+def project_detail(project_id):
+    """Display project details with site plan and unit markers"""
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    try:
+        # Get project information
+        cur.execute("""
+            SELECT p_id, p_name, description, address, p_image, 
+                   site_plan_image, site_plan_width, site_plan_height, 
+                   project.status, created_at, updated_at
+            FROM project 
+            WHERE p_id = %s AND project.status = 'active'
+        """, (project_id,))
+        project = cur.fetchone()
+        
+        if not project:
+            flash('Project not found.', 'error')
+            return redirect(url_for('projects_page'))
+        
+        # Get all houses in this project with unit information
+        cur.execute("""
+            SELECT h_id, h_title, h_description, price, bedrooms, bathrooms, 
+                   living_area, parking_space, no_of_floors, h.status,
+                   unit_number, unit_x_position, unit_y_position, unit_brand,
+                   t.t_name as type_name
+            FROM house h
+            LEFT JOIN house_type t ON h.t_id = t.t_id
+            WHERE h.p_id = %s AND h.status NOT IN ('inactive', 'sold')
+            ORDER BY unit_number, h_title
+        """, (project_id,))
+        units = cur.fetchall()
+        
+        return render_template('project_detail.html', project=project, units=units)
+        
+    except Exception as e:
+        print(f"Error in project_detail: {e}")
+        flash('Error loading project details.', 'error')
+        return redirect(url_for('projects_page'))
+    finally:
+        cur.close()
+
 @app.route('/houses', methods=['GET'])
 def houses_list():
     # Initialize all template variables with defaults
@@ -3641,10 +3762,6 @@ def houses_list():
             if bedroom_match:
                 bedrooms = bedroom_match.group(1)  # Extract the number of bedrooms
                 print(f"Detected bedroom filter in search: {bedrooms}")
-                # Apply bedroom filter to the query
-                house_query += " AND h.bedrooms = %s"
-                count_query += " AND h.bedrooms = %s"
-                query_params.append(int(bedrooms))
                 # Remove the bedroom part from search terms
                 search_query = re.sub(r'\d+\s*ห้องนอน', '', search_query, flags=re.IGNORECASE | re.UNICODE).strip()
             
@@ -3991,13 +4108,6 @@ def search_by_image():
         # Get all houses and CBIR results from session
         all_houses = session.get('all_houses', [])
         cbir_house_ids = set(session.get('cbir_house_ids', []))
-        
-        # Check if session data has required fields
-        if all_houses and len(all_houses) > 0:
-            sample_house = all_houses[0]
-            if 't_id' not in sample_house or 'p_id' not in sample_house:
-                all_houses = []
-        
         if not cbir_house_ids:
             # If no CBIR data in session, show empty results with message
             cur = mysql.connection.cursor()
@@ -4025,20 +4135,20 @@ def search_by_image():
         
         # If all_houses is empty but cbir_house_ids exists, fetch all houses from database
         if not all_houses:
+            print("[DEBUG] all_houses is empty, fetching from database...")
             cur = mysql.connection.cursor()
             
-            # Fetch all available houses
+            # Fetch all active houses
             cur.execute("""
                 SELECT h.h_id as id, h.h_title as title, h.h_description as description,
                        h.price, h.bedrooms, h.bathrooms, h.living_area as area,
                        h.created_at, h.updated_at,
                        t.t_name as type_name, p.p_name as project_name,
-                       h.t_id, h.p_id,
                        (SELECT image_url FROM house_images WHERE house_id = h.h_id LIMIT 1) as main_image_url
                 FROM house h
                 LEFT JOIN house_type t ON h.t_id = t.t_id
                 LEFT JOIN project p ON h.p_id = p.p_id
-                WHERE h.status = 'available'
+                WHERE 1=1
                 ORDER BY h.h_id DESC
             """)
             all_houses = dict_fetchall(cur)
@@ -4047,6 +4157,8 @@ def search_by_image():
             # Mark CBIR houses and get similarity scores from session
             cbir_house_ids_set = set(cbir_house_ids)
             similarity_scores = session.get('cbir_similarity_scores', {})
+            print(f"[DEBUG] CBIR house IDs: {list(cbir_house_ids_set)}")
+            print(f"[DEBUG] Similarity scores from session: {similarity_scores}")
             
             for house in all_houses:
                 house['is_cbir_result'] = house['id'] in cbir_house_ids_set
@@ -4057,7 +4169,8 @@ def search_by_image():
                 house['similarity'] = similarity
                 house['gallery_images'] = []
                 
-                # Set similarity score for CBIR results
+                if house['is_cbir_result']:
+                    print(f"[DEBUG] House {house['id']} similarity: {similarity}")
                 
                 # Fix image URL if it exists
                 if house.get('main_image_url'):
@@ -4097,27 +4210,14 @@ def search_by_image():
         
         # Apply feature filter
         if feature_id:
-            # Check if this is a bedroom feature
+            # Get houses that have this feature
             cur = mysql.connection.cursor()
-            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (int(feature_id),))
-            feature = cur.fetchone()
-            
-            if feature:
-                feature_name = feature[0]
-                import re
-                bedroom_match = re.search(r'(\d+)\s*ห้องนอน', feature_name, re.IGNORECASE | re.UNICODE)
-                if bedroom_match:
-                    # This is a bedroom filter
-                    bedroom_count = int(bedroom_match.group(1))
-                    filtered_houses = [house for house in filtered_houses 
-                                     if house.get('bedrooms') == bedroom_count]
-                else:
-                    # This is a regular feature filter
-                    cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
-                    house_ids_with_feature = [row[0] for row in cur.fetchall()]
-                    filtered_houses = [house for house in filtered_houses 
-                                     if house.get('id') in house_ids_with_feature]
+            cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
+            house_ids_with_feature = [row[0] for row in cur.fetchall()]
             cur.close()
+            
+            filtered_houses = [house for house in filtered_houses 
+                             if house.get('id') in house_ids_with_feature]
         
         # Apply price filter
         if min_price:

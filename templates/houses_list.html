@@ -397,6 +397,13 @@
                         </div>
                         {% endif %}
                         
+                        <!-- Unit Number Badge -->
+                        {% if house.unit_number %}
+                        <div class="absolute top-4 left-4 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                            {{ house.unit_number }}
+                        </div>
+                        {% endif %}
+                        
                         <!-- Quick View Button -->
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <a href="{{ url_for('house_detail', house_id=house.id) }}" 
@@ -421,6 +428,16 @@
                             </svg>
                             <span class="text-sm truncate">{{ house.location or house.project_name or 'N/A' }}</span>
                         </div>
+                        
+                        <!-- Unit Information -->
+                        {% if house.unit_brand %}
+                        <div class="flex items-center gap-2 text-gray-600 mb-4">
+                            <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span class="text-sm text-blue-600 font-medium">{{ house.unit_brand }}</span>
+                        </div>
+                        {% endif %}
                         
                         <!-- Features -->
                         <div class="grid grid-cols-3 gap-4 mb-6">
