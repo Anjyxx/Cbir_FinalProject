@@ -250,13 +250,22 @@
                     </div>
                 {% endif %}
                     
-                    <!-- Quick View Button -->
+                    <!-- Quick View Button (only for real houses) -->
+                    {% if not house.is_mock_entry %}
                     <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <a href="{{ url_for('house_detail', house_id=house.id) }}" 
                            class="bg-white text-gray-800 px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-gray-50 transition-colors duration-200">
                             ดูรายละเอียด
                         </a>
                     </div>
+                    {% else %}
+                    <!-- Mock entry overlay -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="bg-blue-500 text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+                            รูปภาพที่คล้ายกัน
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <!-- Content -->
@@ -275,7 +284,8 @@
                         <span class="text-sm truncate">{{ house.location or house.project_name or 'N/A' }}</span>
                     </div>
                     
-                    <!-- Features -->
+                    <!-- Features (only for real houses) -->
+                    {% if not house.is_mock_entry %}
                     <div class="grid grid-cols-3 gap-4 mb-6">
                         <div class="text-center">
                             <div class="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mx-auto mb-2">
@@ -305,8 +315,17 @@
                             <div class="text-xs text-gray-500">ตร.ม.</div>
                         </div>
                     </div>
+                    {% else %}
+                    <!-- Mock entry info -->
+                    <div class="text-center mb-6">
+                        <div class="bg-blue-50 text-blue-800 px-4 py-2 rounded-lg text-sm">
+                            รูปภาพที่คล้ายกันจากคลังข้อมูล
+                        </div>
+                    </div>
+                    {% endif %}
                     
-                    <!-- Price -->
+                    <!-- Price (only for real houses) -->
+                    {% if not house.is_mock_entry %}
                     <div class="border-t border-gray-100 pt-4">
                         <div class="flex items-end justify-end">
                             <div class="text-2xl font-bold text-blue-600">
@@ -314,6 +333,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -363,6 +383,25 @@
 </div>
 
  <script>
+     // JavaScript error logging
+     window.addEventListener('error', function(e) {
+         console.error('JavaScript Error:', e.error);
+         console.error('Error details:', {
+             message: e.message,
+             filename: e.filename,
+             lineno: e.lineno,
+             colno: e.colno,
+             error: e.error
+         });
+     });
+     
+     // Log page load and house data
+     document.addEventListener('DOMContentLoaded', function() {
+         console.log('Results page loaded');
+         console.log('Houses data:', {{ houses | tojson | safe }});
+         console.log('Number of houses:', {{ houses | length }});
+     });
+     
      // Alpine.js data for dropdowns
      document.addEventListener('alpine:init', function() {
          Alpine.data('dropdown', function({options, selected, name}) {

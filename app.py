@@ -59,6 +59,7 @@ from functools import wraps
 # Import local modules
 from dotenv import load_dotenv
 from cbir_search import search_similar_images
+from cbir_database import search_similar_images_db
 import search_utils
 
 # --- Load Environment Variables and Configure Flask App ---
@@ -4078,7 +4079,11 @@ def set_main_house_image(house_id, image_id):
 def search_by_image():
     if request.method == 'GET':
         # Handle GET requests for filtering on image search results
+        print(f"[DEBUG] GET request to search_by_image")
         query_image = request.args.get('query_image') or session.get('cbir_query_image')
+        print(f"[DEBUG] Query image: {query_image}")
+        print(f"[DEBUG] Session CBIR data: {session.get('cbir_house_ids', [])}")
+        print(f"[DEBUG] Session similarity scores: {session.get('cbir_similarity_scores', {})}")
         
         if not query_image:
             # If no query image, show empty results with message
@@ -4309,38 +4314,80 @@ def search_by_image():
     upload_path = os.path.join(upload_dir, filename)
     file.save(upload_path)
 
-    # Run CBIR search
+    # Run CBIR search with search type support using database
+    search_type = request.form.get('search_type', 'visual')  # Default to 'visual'
+    
+    # Get filters from form
+    filters = {}
+    if request.form.get('price_min'):
+        filters['price_min'] = float(request.form.get('price_min'))
+    if request.form.get('price_max'):
+        filters['price_max'] = float(request.form.get('price_max'))
+    if request.form.get('bedrooms'):
+        filters['bedrooms'] = int(request.form.get('bedrooms'))
+    if request.form.get('house_type'):
+        filters['house_type'] = int(request.form.get('house_type'))
+    if request.form.get('project'):
+        filters['project'] = int(request.form.get('project'))
+    
+    # Use .npy file search for more diverse results (99 images vs 3 houses in database)
     try:
-        results = search_similar_images(upload_path, top_k=6)
+        print(f"[DEBUG] Starting .npy CBIR search with top_k=12, search_type={search_type}")
+        results = search_similar_images(upload_path, top_k=12, search_type=search_type)
+        print(f"[DEBUG] .npy CBIR search completed with {len(results)} results:")
+        for i, result in enumerate(results):
+            print(f"[DEBUG]   {i+1}. {result.get('filename', 'NO_FILENAME')} - similarity: {result.get('similarity', 0):.4f}")
     except Exception as e:
-        print(f"[ERROR] CBIR search failed: {e}")
+        print(f"[ERROR] .npy CBIR search failed: {e}")
         import traceback
         traceback.print_exc()
-        results = []
+        # Fallback to database search
+        try:
+            print(f"[DEBUG] Trying fallback to database search...")
+            results = search_similar_images_db(upload_path, top_k=8, search_type=search_type, filters=filters)
+            print(f"[DEBUG] Database search completed with {len(results)} results")
+        except Exception as e2:
+            print(f"[ERROR] Database search also failed: {e2}")
+            results = []
 
-    # Convert numpy strings to regular strings and get filenames
+    # Process CBIR results (from .npy or database)
     cbir_results = []
     for r in results:
         try:
-            img_filename = os.path.basename(str(r['filename']))
+            img_filename = r['filename']
             similarity = float(r['similarity'])
             
-            # Check if the image file exists in the uploads directory
-            possible_paths = [
-                os.path.join('static', 'uploads', img_filename),
-                img_filename,
-                os.path.join('static', 'uploads', os.path.basename(img_filename))
-            ]
-            
-            # Check if any of the paths exist
-            if not any(os.path.exists(path) for path in possible_paths):
-                print(f"[DEBUG] Image file not found: {img_filename}")
-                continue
-                
-            cbir_results.append({
-                'filename': img_filename,
-                'similarity': similarity
-            })
+            # Check if this is a database result (has house metadata) or .npy result (only filename/similarity)
+            if 'house_id' in r:
+                # Database result - already has house metadata
+                cbir_results.append({
+                    'filename': img_filename,
+                    'similarity': similarity,
+                    'house_id': r.get('house_id'),
+                    'title': r.get('title'),
+                    'price': r.get('price'),
+                    'bedrooms': r.get('bedrooms'),
+                    'bathrooms': r.get('bathrooms'),
+                    'area': r.get('area'),
+                    'house_type': r.get('house_type'),
+                    'project_name': r.get('project_name'),
+                    'image_url': r.get('image_url')
+                })
+            else:
+                # .npy result - only has filename and similarity, need to look up house metadata
+                cbir_results.append({
+                    'filename': img_filename,
+                    'similarity': similarity,
+                    'house_id': None,  # Will be filled later
+                    'title': None,
+                    'price': None,
+                    'bedrooms': None,
+                    'bathrooms': None,
+                    'area': None,
+                    'house_type': None,
+                    'project_name': None,
+                    'image_url': None
+                })
         except (ValueError, KeyError) as e:
             print(f"[WARNING] Invalid result format: {r}, error: {e}")
     
@@ -4418,49 +4465,141 @@ def search_by_image():
             'house_title': house_title
         }
     
-    # Filter CBIR results to only include existing images and keep track of best matches
-    house_best_matches = {}  # house_id -> best matching image info
+    # Process CBIR results to create display entries (both with and without house metadata)
+    display_results = []  # List of results to display
     
-    for result in cbir_results:
+    print(f"[DEBUG] Processing {len(cbir_results)} CBIR results...")
+    print(f"[DEBUG] Valid images count: {len(valid_images)}")
+    
+    for i, result in enumerate(cbir_results):
         img_filename = result['filename']
+        similarity = result['similarity']
+        print(f"[DEBUG] Processing result {i+1}: {img_filename} - similarity: {similarity:.4f}")
         
         # Try to find a matching image in our valid images
         if img_filename in valid_images:
             img_data = valid_images[img_filename]
             house_id = img_data['house_id']
-            similarity = result['similarity']
             
-            # Only keep the best match for each house
-            if house_id not in house_best_matches or similarity > house_best_matches[house_id]['similarity']:
+            print(f"[DEBUG]   -> Found in valid_images: House {house_id} ({img_data['house_title']})")
+            
+            # Add result with house metadata
+            display_results.append({
+                'filename': img_filename,
+                'similarity': similarity,
+                'image_url': img_data['image_url'],
+                'house_id': house_id,
+                'house_title': img_data['house_title'],
+                'has_house_metadata': True
+            })
+            print(f"[DEBUG]   -> Added with house metadata")
+        else:
+            # Create a mock entry for images without house metadata
+            print(f"[DEBUG]   -> NOT FOUND in valid_images - creating mock entry")
+            
+            # Create a mock image URL
+            mock_image_url = f"uploads/{img_filename}"
+            
+            display_results.append({
+                'filename': img_filename,
+                'similarity': similarity,
+                'image_url': mock_image_url,
+                'house_id': None,
+                'house_title': f"Similar Image {i+1}",
+                'has_house_metadata': False
+            })
+            print(f"[DEBUG]   -> Added as mock entry")
+    
+    # Sort by similarity and take top results
+    display_results.sort(key=lambda x: x['similarity'], reverse=True)
+    top_results = display_results[:12]  # Show top 12 results
+    
+    print(f"[DEBUG] Final display results: {len(top_results)}")
+    for i, result in enumerate(top_results):
+        print(f"[DEBUG]   {i+1}. {result['filename']} - similarity: {result['similarity']:.4f} - has_metadata: {result['has_house_metadata']}")
+    
+    # Group results by house_id for houses with metadata
+    house_best_matches = {}
+    for result in top_results:
+        if result['has_house_metadata'] and result['house_id'] is not None:
+            house_id = result['house_id']
+            if house_id not in house_best_matches or result['similarity'] > house_best_matches[house_id]['similarity']:
                 house_best_matches[house_id] = {
-                    'filename': img_filename,
-                    'similarity': similarity,
-                    'image_url': img_data['image_url'],
-                    'house_title': img_data['house_title']
+                    'filename': result['filename'],
+                    'similarity': result['similarity'],
+                    'image_url': result['image_url'],
+                    'house_title': result['house_title']
                 }
     
-    if not house_best_matches:
+    if not top_results:
         cur.close()
         return render_template('results.html', 
                             houses=[], 
                             query_image=filename, 
                             pagination=None,
-                            message="No matching houses found with similar images.")
+                            message="No matching images found.")
     
-    # Sort houses by similarity (highest first) and take top 5
-    top_houses = sorted(
-        house_best_matches.items(),
-        key=lambda x: x[1]['similarity'],
-        reverse=True
-    )[:5]  # Get top 5 most similar houses
+    # Create houses list for template - include both real houses and mock entries
+    houses = []
     
-    matched_house_ids = {house_id for house_id, _ in top_houses}
-    image_to_house = {info['filename']: house_id for house_id, info in top_houses}
+    # First, add real houses with metadata
+    for result in top_results:
+        if result['has_house_metadata'] and result['house_id'] is not None:
+            # Get full house details from database
+            cur.execute("""
+                SELECT h.h_id, h.h_title, h.price, h.bedrooms, h.bathrooms, h.living_area,
+                       t.t_name as house_type, p.p_name as project_name
+                FROM house h
+                LEFT JOIN house_type t ON h.t_id = t.t_id
+                LEFT JOIN project p ON h.p_id = p.p_id
+                WHERE h.h_id = %s
+            """, (result['house_id'],))
+            
+            house_data = cur.fetchone()
+            if house_data:
+                h_id, h_title, price, bedrooms, bathrooms, living_area, house_type, project_name = house_data
+                
+                houses.append({
+                    'id': h_id,
+                    'title': h_title,
+                    'price': price,
+                    'bedrooms': bedrooms,
+                    'bathrooms': bathrooms,
+                    'living_area': living_area,
+                    'type_name': house_type,
+                    'project_name': project_name,
+                    'main_image_url': result['image_url'],
+                    'similarity': result['similarity'],
+                    'is_cbir_result': True
+                })
     
-    # Create a mapping of house_id to its best similarity score
-    house_similarities = {house_id: info['similarity'] for house_id, info in top_houses}
+    # Then, add mock entries for images without house metadata
+    for result in top_results:
+        if not result['has_house_metadata']:
+            houses.append({
+                'id': f"mock_{result['filename']}",  # Mock ID
+                'title': result['house_title'],
+                'price': None,
+                'bedrooms': None,
+                'bathrooms': None,
+                'living_area': None,
+                'type_name': "Similar Image",
+                'project_name': None,
+                'main_image_url': result['image_url'],
+                'similarity': result['similarity'],
+                'is_cbir_result': True,
+                'is_mock_entry': True  # Flag for template to handle differently
+            })
+    
+    print(f"[DEBUG] Final houses for display: {len(houses)}")
+    for i, house in enumerate(houses):
+        print(f"[DEBUG]   {i+1}. {house['title']} - similarity: {house['similarity']:.4f} - mock: {house.get('is_mock_entry', False)}")
+    
+    # Create mappings for session storage
+    matched_house_ids = {house['id'] for house in houses if not house.get('is_mock_entry', False)}
+    house_similarities = {house['id']: house['similarity'] for house in houses}
 
-    if not matched_house_ids:
+    if not houses:
         # Get dropdown data for the filter bar
         cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
         house_types = dict_fetchall(cur)
@@ -4544,9 +4683,9 @@ def search_by_image():
         house['similarity'] = house_similarity
     cur.close()
 
-    # Sort houses by similarity (descending) and ensure we only return up to 5
+    # Sort houses by similarity (descending) and ensure we only return up to 4
     houses.sort(key=lambda x: x.get('similarity', 0), reverse=True)
-    houses = houses[:5]  # Limit to top 5 most similar houses
+    houses = houses[:4]  # Limit to top 4 most similar houses
 
     # Mark CBIR results with a flag
     cbir_house_ids = {house['id'] for house in houses}
@@ -4596,9 +4735,16 @@ def search_by_image():
     print(f"[DEBUG] House best matches type: {type(house_best_matches)}")
     print(f"[DEBUG] House best matches keys: {list(house_best_matches.keys()) if house_best_matches else 'Empty'}")
     
+    # Store CBIR results in session
     session['cbir_similarity_scores'] = {house_id: match['similarity'] for house_id, match in house_best_matches.items()}
     print(f"[DEBUG] Storing similarity scores: {session['cbir_similarity_scores']}")
     print(f"[DEBUG] Session keys after storing: {list(session.keys())}")
+    
+    # Debug: Check if we're getting the expected number of houses
+    print(f"[DEBUG] Expected to show {len(house_best_matches)} houses in results")
+    print(f"[DEBUG] Houses that should be displayed:")
+    for house_id, match in house_best_matches.items():
+        print(f"[DEBUG]   - House {house_id}: {match['house_title']} (similarity: {match['similarity']:.4f})")
 
     # Get dropdown data for the filter bar
     cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
@@ -4612,6 +4758,11 @@ def search_by_image():
     
     cur.close()
 
+    # Debug: Log final houses being passed to template
+    print(f"[DEBUG] Final houses being passed to template: {len(houses)}")
+    for i, house in enumerate(houses):
+        print(f"[DEBUG]   {i+1}. House {house.get('id', 'NO_ID')}: {house.get('title', 'NO_TITLE')} - similarity: {house.get('similarity', 0):.4f}")
+
     return render_template('results.html', 
                          houses=houses, 
                          query_image=filename, 
@@ -4621,6 +4772,30 @@ def search_by_image():
                          features=features)
 
 
+
+@app.route('/api/house-types')
+def api_house_types():
+    """API endpoint to get house types for filters"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+        house_types = dict_fetchall(cur)
+        cur.close()
+        return jsonify(house_types)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects')
+def api_projects():
+    """API endpoint to get projects for filters"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+        projects = dict_fetchall(cur)
+        cur.close()
+        return jsonify(projects)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/cbir-results')
 def cbir_results():
