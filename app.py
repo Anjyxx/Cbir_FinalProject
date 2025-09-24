@@ -5192,7 +5192,6 @@ def generate_pdf_report():
         for house in houses:
             rows_html += f"""
                 <tr>
-                    <td>{house['h_id']}</td>
                     <td>{house['h_title']}</td>
                     <td>{house['project_name'] or '-'}</td>
                     <td>{house['type_name'] or '-'}</td>
@@ -5360,7 +5359,6 @@ def generate_pdf_report():
             # Prepare table data with Thai headers and proper text wrapping
             table_data = [
                 [
-                    Paragraph('ID', thai_heading_style),
                     Paragraph('ชื่อบ้าน', thai_heading_style),
                     Paragraph('โครงการ', thai_heading_style),
                     Paragraph('ประเภท', thai_heading_style),
@@ -5374,7 +5372,6 @@ def generate_pdf_report():
             # Add house data with proper text wrapping
             for house in houses:
                 table_data.append([
-                    Paragraph(str(house['h_id']), thai_style),
                     Paragraph(house['h_title'], thai_style),
                     Paragraph(house.get('project_name', '-'), thai_style),
                     Paragraph(house.get('type_name', '-'), thai_style),
@@ -5398,7 +5395,6 @@ def generate_pdf_report():
             
             # Set column widths to ensure text fits on one line
             col_widths = [
-                0.5*inch,   # ID (0.5")
                 2.2*inch,   # House Name (slightly narrower)
                 1.5*inch,   # Project (narrower)
                 0.9*inch,   # Type (slightly narrower)
