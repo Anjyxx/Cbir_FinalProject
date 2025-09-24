@@ -464,6 +464,7 @@
                     }
                 },
                 y: {
+                    beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
                     },
@@ -472,7 +473,8 @@
                             family: '"Kanit", sans-serif',
                             size: 11
                         },
-                        precision: 0
+                        precision: 0,
+                        stepSize: 1
                     }
                 }
             }
@@ -613,7 +615,9 @@
                                     ticks: {
                                         font: {
                                             family: '"Kanit", sans-serif'
-                                        }
+                                        },
+                                        precision: 0,
+                                        stepSize: 1
                                     }
                                 },
                                 x: {
@@ -746,7 +750,7 @@
 
             if (chartsData.housesByLivingArea) {
                 updateChart('housesByLivingAreaChart',
-                    chartsData.housesByLivingArea.map(item => item.area_range ? `${item.area_range} ตร.ม.` : 'N/A'),
+                    chartsData.housesByLivingArea.map(item => item.area_range || 'N/A'),
                     chartsData.housesByLivingArea.map(item => item.count || 0),
                     'bar'
                 );

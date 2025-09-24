@@ -3754,76 +3754,56 @@ def houses_list():
         query_params = []
         
         # Process search query if it exists
-        if search_query:
+        if search_query and search_query.strip():
             print(f"\n=== DEBUG: Search Query ===")
             print(f"Original search query: {search_query}")
             
-            # Check for bedroom pattern like "2 ห้องนอน"
-            bedroom_match = re.search(r'(\d+)\s*ห้องนอน', search_query, re.IGNORECASE | re.UNICODE)
-            if bedroom_match:
-                bedrooms = bedroom_match.group(1)  # Extract the number of bedrooms
-                print(f"Detected bedroom filter in search: {bedrooms}")
-                # Remove the bedroom part from search terms
-                search_query = re.sub(r'\d+\s*ห้องนอน', '', search_query, flags=re.IGNORECASE | re.UNICODE).strip()
+            # Clean and validate search query
+            search_query = search_query.strip()
             
-            # Process remaining search terms if any
-            if search_query.strip():
-                # Split on whitespace but keep Thai words together
-                search_terms = re.findall(r'[^\s\d]+|\d+', search_query.lower())
-                print(f"Search terms after processing: {search_terms}")
+            # Skip very short queries (less than 2 characters)
+            if len(search_query) < 2:
+                print("Search query too short, skipping search")
+            else:
+                # Check for bedroom pattern like "2 ห้องนอน"
+                bedroom_match = re.search(r'(\d+)\s*ห้องนอน', search_query, re.IGNORECASE | re.UNICODE)
+                if bedroom_match:
+                    bedrooms = bedroom_match.group(1)  # Extract the number of bedrooms
+                    print(f"Detected bedroom filter in search: {bedrooms}")
+                    # Add bedroom filter to both queries
+                    house_query += " AND h.bedrooms = %s"
+                    count_query += " AND h.bedrooms = %s"
+                    query_params.append(int(bedrooms))
+                    # Remove the bedroom part from search terms
+                    search_query = re.sub(r'\d+\s*ห้องนอน', '', search_query, flags=re.IGNORECASE | re.UNICODE).strip()
                 
-                # For each search term, create conditions that match any of the fields
-                term_conditions = []
-                
-                for term in search_terms:
-                    if len(term) < 2 and not term.isdigit():
-                        continue
-                        
-                    # Create a list of conditions for this term with proper collation for Thai
-                    conditions = [
-                        "LOWER(CONVERT(h.h_title USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
-                        "LOWER(CONVERT(h.h_description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
-                        "LOWER(CONVERT(p.p_name USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)",
-                        "LOWER(CONVERT(t.t_name USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)"
-                    ]
+                # Process remaining search terms if any
+                if search_query.strip():
+                    # Clean and normalize the search query
+                    search_query = search_query.strip()
+                    print(f"Processed search query: {search_query}")
                     
-                    # Add the term parameter for each condition
-                    term_param = f"%{term}%"
-                    query_params.extend([term_param] * len(conditions))
+                    # Create a simple search condition that works well with Thai text
+                    search_condition = """
+                        (
+                            h.h_title LIKE %s OR 
+                            h.h_description LIKE %s OR 
+                            p.p_name LIKE %s OR 
+                            t.t_name LIKE %s
+                        )
+                    """
                     
-                    # If the term is a number, also search in numeric fields
-                    if term.isdigit():
-                        num = int(term)
-                        numeric_conditions = [
-                            "h.bedrooms = %s",
-                            "h.bathrooms = %s",
-                            "h.living_area = %s"
-                        ]
-                        conditions.extend(numeric_conditions)
-                        query_params.extend([num] * len(numeric_conditions))
+                    # Add the search parameter (with wildcards) for each field
+                    search_param = f"%{search_query}%"
+                    query_params.extend([search_param] * 4)
                     
-                    # Add description fields if they exist
-                    if has_p_description:
-                        conditions.append("LOWER(CONVERT(p.description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)")
-                        query_params.append(term_param)
-                    
-                    if has_t_description:
-                        conditions.append("LOWER(CONVERT(t.t_description USING utf8mb4) COLLATE utf8mb4_unicode_ci) LIKE LOWER(%s)")
-                        query_params.append(term_param)
-                    
-                    # Combine conditions with OR for this term
-                    if conditions:
-                        term_condition = " OR ".join(conditions)
-                        term_conditions.append(f"({term_condition})")
-                
-                # Combine all term conditions with AND
-                if term_conditions:
-                    search_condition = " AND ".join(term_conditions)
-                    house_query += f" AND ({search_condition})"
-                    count_query += f" AND ({search_condition})"
+                    # Add the search condition to both queries
+                    house_query += f" AND {search_condition}"
+                    count_query += f" AND {search_condition}"
                     
                     print(f"\n=== DEBUG: Search Condition ===")
                     print(f"Search condition: {search_condition}")
+                    print(f"Search param: {search_param}")
                     print(f"Query params: {query_params}")
             
             print(f"\n=== DEBUG: Final Queries ===")
@@ -6065,45 +6045,18 @@ def reports_chart_data():
             SELECT 
                 CASE
                     WHEN living_area IS NULL THEN 'ไม่ระบุ'
-                    WHEN living_area < 50 THEN '0-50 ตร.ม.'
-                    WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
-                    WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
-                    WHEN living_area BETWEEN 150 AND 199 THEN '150-199 ตร.ม.'
-                    WHEN living_area >= 200 THEN '200+ ตร.ม.'
-                    ELSE 'ไม่ระบุ'
+                    ELSE CONCAT(living_area, ' ตร.ม.')
                 END as area_range,
                 COUNT(*) as count
             FROM house h
             LEFT JOIN project p ON h.p_id = p.p_id
             LEFT JOIN house_type ht ON h.t_id = ht.t_id
             WHERE {where_clause}
-            GROUP BY 
-                CASE
-                    WHEN living_area IS NULL THEN 'ไม่ระบุ'
-                    WHEN living_area < 50 THEN '0-50 ตร.ม.'
-                    WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
-                    WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
-                    WHEN living_area BETWEEN 150 AND 199 THEN '150-199 ตร.ม.'
-                    WHEN living_area >= 200 THEN '200+ ตร.ม.'
-                    ELSE 'ไม่ระบุ'
-                END
+            GROUP BY living_area
             ORDER BY 
                 CASE 
-                    WHEN CASE
-                        WHEN living_area IS NULL THEN 'ไม่ระบุ'
-                        WHEN living_area < 50 THEN '0-50 ตร.ม.'
-                        WHEN living_area BETWEEN 50 AND 99 THEN '50-99 ตร.ม.'
-                        WHEN living_area BETWEEN 100 AND 149 THEN '100-149 ตร.ม.'
-                        WHEN living_area BETWEEN 150 AND 199 THEN '150-199 ตร.ม.'
-                        WHEN living_area >= 200 THEN '200+ ตร.ม.'
-                        ELSE 'ไม่ระบุ'
-                    END = 'ไม่ระบุ' THEN 0
-                    WHEN living_area < 50 THEN 1
-                    WHEN living_area BETWEEN 50 AND 99 THEN 2
-                    WHEN living_area BETWEEN 100 AND 149 THEN 3
-                    WHEN living_area BETWEEN 150 AND 199 THEN 4
-                    WHEN living_area >= 200 THEN 5
-                    ELSE 6
+                    WHEN living_area IS NULL THEN 0
+                    ELSE living_area
                 END
         """
         cur.execute(query_houses_by_area, tuple(params))

@@ -79,3 +79,5 @@ def test_cbir_functionality():
 
 if __name__ == "__main__":
     test_cbir_functionality()
+
+

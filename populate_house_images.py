@@ -83,3 +83,5 @@ def populate_house_images():
 
 if __name__ == "__main__":
     populate_house_images()
+
+

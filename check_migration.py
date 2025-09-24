@@ -27,3 +27,5 @@ if count > 0:
         print(f'  House {house_id}: {image_url}')
 
 conn.close()
+
+

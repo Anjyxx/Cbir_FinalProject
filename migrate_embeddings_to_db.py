@@ -125,3 +125,5 @@ def migrate_embeddings_to_database():
 
 if __name__ == "__main__":
     migrate_embeddings_to_database()
+
+

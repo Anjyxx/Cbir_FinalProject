@@ -29,3 +29,5 @@ for house_id, image_url in house2_images:
     print(f'  {image_url}: {"EXISTS" if exists else "MISSING"}')
 
 conn.close()
+
+

@@ -107,3 +107,5 @@ def generate_all_embeddings():
 
 if __name__ == "__main__":
     generate_all_embeddings()
+
+
