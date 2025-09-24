@@ -4093,6 +4093,11 @@ def search_by_image():
         # Get all houses and CBIR results from session
         all_houses = session.get('all_houses', [])
         cbir_house_ids = set(session.get('cbir_house_ids', []))
+        
+        print(f"[DEBUG] Session data:")
+        print(f"  all_houses count: {len(all_houses)}")
+        print(f"  cbir_house_ids: {cbir_house_ids}")
+        print(f"  Session keys: {list(session.keys())}")
         if not cbir_house_ids:
             # If no CBIR data in session, show empty results with message
             cur = mysql.connection.cursor()
@@ -4129,6 +4134,7 @@ def search_by_image():
                        h.price, h.bedrooms, h.bathrooms, h.living_area as area,
                        h.created_at, h.updated_at,
                        t.t_name as type_name, p.p_name as project_name,
+                       h.t_id as t_id, h.p_id as p_id, h.f_id as f_id,
                        (SELECT image_url FROM house_images WHERE house_id = h.h_id LIMIT 1) as main_image_url
                 FROM house h
                 LEFT JOIN house_type t ON h.t_id = t.t_id
@@ -4138,6 +4144,11 @@ def search_by_image():
             """)
             all_houses = dict_fetchall(cur)
             cur.close()
+            
+            print(f"[DEBUG] Fetched {len(all_houses)} houses from database")
+            if all_houses:
+                print(f"[DEBUG] First house fields: {list(all_houses[0].keys())}")
+                print(f"[DEBUG] First house p_id: {all_houses[0].get('p_id')}, t_id: {all_houses[0].get('t_id')}")
             
             # Mark CBIR houses and get similarity scores from session
             cbir_house_ids_set = set(cbir_house_ids)
@@ -4163,9 +4174,6 @@ def search_by_image():
                     if not house['main_image_url'].startswith('/static/'):
                         house['main_image_url'] = '/static/uploads/' + house['main_image_url'].split('/')[-1]
             
-        # Apply filters to ALL houses
-        filtered_houses = all_houses.copy()
-        
         # Get filter parameters
         search = request.args.get('search', '').strip()
         project_id = request.args.get('project', '').strip()
@@ -4177,32 +4185,75 @@ def search_by_image():
         max_area = request.args.get('max_area', '').strip()
         sort = request.args.get('sort', 'similarity').strip()
         
+        print(f"[DEBUG] Filter parameters:")
+        print(f"  search: '{search}'")
+        print(f"  project_id: '{project_id}'")
+        print(f"  house_type_id: '{house_type_id}'")
+        print(f"  feature_id: '{feature_id}'")
+        print(f"  min_price: '{min_price}'")
+        print(f"  max_price: '{max_price}'")
+        print(f"  min_area: '{min_area}'")
+        print(f"  max_area: '{max_area}'")
+        print(f"  sort: '{sort}'")
+        
+        # Start with only CBIR results
+        filtered_houses = [house for house in all_houses if house.get('is_cbir_result', False)]
+        print(f"[DEBUG] Starting with {len(filtered_houses)} CBIR results")
+        
+        # Debug: Check the structure of the first house
+        if filtered_houses:
+            print(f"[DEBUG] First house structure: {filtered_houses[0]}")
+            print(f"[DEBUG] Available fields: {list(filtered_houses[0].keys())}")
+        
         # Apply search filter
         if search:
+            before_count = len(filtered_houses)
             filtered_houses = [house for house in filtered_houses 
                              if search.lower() in house.get('title', '').lower() 
                              or search.lower() in house.get('description', '').lower()]
+            print(f"[DEBUG] After search filter: {before_count} -> {len(filtered_houses)}")
         
         # Apply project filter
         if project_id:
+            before_count = len(filtered_houses)
             filtered_houses = [house for house in filtered_houses 
                              if str(house.get('p_id', '')) == project_id]
+            print(f"[DEBUG] After project filter: {before_count} -> {len(filtered_houses)}")
         
         # Apply house type filter
         if house_type_id:
+            before_count = len(filtered_houses)
             filtered_houses = [house for house in filtered_houses 
                              if str(house.get('t_id', '')) == house_type_id]
+            print(f"[DEBUG] After house type filter: {before_count} -> {len(filtered_houses)}")
         
         # Apply feature filter
         if feature_id:
-            # Get houses that have this feature
+            before_count = len(filtered_houses)
+            # Check if this is a bedroom feature (like "3 ห้องนอน")
             cur = mysql.connection.cursor()
-            cur.execute("SELECT house_id FROM house_has_features WHERE feature_id = %s", (feature_id,))
-            house_ids_with_feature = [row[0] for row in cur.fetchall()]
+            cur.execute("SELECT f_name FROM house_features WHERE f_id = %s", (feature_id,))
+            feature = cur.fetchone()
             cur.close()
             
-            filtered_houses = [house for house in filtered_houses 
-                             if house.get('id') in house_ids_with_feature]
+            if feature:
+                f_name = feature[0]
+                import re
+                bedroom_match = re.search(r'(\d+)\s*ห้องนอน', f_name)
+                
+                if bedroom_match:
+                    # This is a bedroom filter - filter by bedrooms count
+                    bedroom_count = int(bedroom_match.group(1))
+                    print(f"[DEBUG] Bedroom filter: {bedroom_count} bedrooms")
+                    filtered_houses = [house for house in filtered_houses 
+                                     if house.get('bedrooms', 0) == bedroom_count]
+                else:
+                    # This is a regular feature filter - filter by f_id
+                    print(f"[DEBUG] Regular feature filter: f_id = {feature_id}")
+                    filtered_houses = [house for house in filtered_houses 
+                                     if house.get('f_id') == int(feature_id)]
+            
+            print(f"[DEBUG] After feature filter: {before_count} -> {len(filtered_houses)}")
         
         # Apply price filter
         if min_price:
@@ -4252,11 +4303,8 @@ def search_by_image():
         elif sort == 'oldest':
             filtered_houses.sort(key=lambda x: x.get('id', 0))
         elif sort == 'similarity':
-            # Sort by similarity (CBIR results first, then by similarity score)
-            filtered_houses.sort(key=lambda x: (not x.get('is_cbir_result', False), -x.get('similarity', 0)))
-        
-        # Only show houses that were originally found by CBIR
-        filtered_houses = [house for house in filtered_houses if house.get('is_cbir_result', False)]
+            # Sort by similarity score (highest first)
+            filtered_houses.sort(key=lambda x: -x.get('similarity', 0))
         
         # Get dropdown data
         cur = mysql.connection.cursor()
@@ -4270,6 +4318,10 @@ def search_by_image():
         features = dict_fetchall(cur)
         
         cur.close()
+        
+        print(f"[DEBUG] Final result: {len(filtered_houses)} houses after filtering")
+        for i, house in enumerate(filtered_houses[:5]):  # Show first 5 houses
+            print(f"  {i+1}. House {house.get('id')}: {house.get('title')} (p_id: {house.get('p_id')}, t_id: {house.get('t_id')})")
         
         return render_template('results.html', 
                              houses=filtered_houses, 
@@ -4681,7 +4733,7 @@ def search_by_image():
                h.no_of_floors as floors, h.status,
                h.latitude, h.longitude,
                t.t_name as type_name, p.p_name as project_name,
-               h.t_id, h.p_id
+               h.t_id as t_id, h.p_id as p_id, h.f_id as f_id
         FROM house h
         LEFT JOIN house_type t ON h.t_id = t.t_id
         LEFT JOIN project p ON h.p_id = p.p_id

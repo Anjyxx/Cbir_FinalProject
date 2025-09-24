@@ -400,11 +400,32 @@
          console.log('Results page loaded');
          console.log('Houses data:', {{ houses | tojson | safe }});
          console.log('Number of houses:', {{ houses | length }});
+         
+         // Debug dropdown data
+         console.log('House Types:', {{ house_types | tojson | safe }});
+         console.log('Projects:', {{ projects | tojson | safe }});
+         console.log('Features:', {{ features | tojson | safe }});
+         
+         // Add form submission debugging
+         const form = document.querySelector('form[action*="search_by_image"]');
+         if (form) {
+             form.addEventListener('submit', function(e) {
+                 console.log('Form submitted!');
+                 console.log('Form data:', new FormData(form));
+                 
+                 // Log all form inputs
+                 const inputs = form.querySelectorAll('input, select');
+                 inputs.forEach(input => {
+                     console.log(`${input.name}: ${input.value}`);
+                 });
+             });
+         }
      });
      
      // Alpine.js data for dropdowns
      document.addEventListener('alpine:init', function() {
          Alpine.data('dropdown', function({options, selected, name}) {
+             console.log(`Initializing dropdown ${name}:`, {options, selected});
              return {
                  open: false,
                  search: '',
@@ -428,6 +449,9 @@
                      const hiddenInput = this.$el.querySelector('input[type="hidden"]');
                      if (hiddenInput) {
                          hiddenInput.value = id;
+                         console.log(`Updated ${this.name} to: ${id}`);
+                     } else {
+                         console.error(`Hidden input not found for ${this.name}`);
                      }
                  }
              };
