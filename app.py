@@ -6611,13 +6611,15 @@ if __name__ != "__main__":
         x_prefix=1
     )
 
-# Import and add new CBIR routes
+# Import new CBIR routes
 try:
     from new_cbir_route import add_new_cbir_routes
     add_new_cbir_routes(app, mysql, dict_fetchall, dict_fetchone, csrf)
     print("✅ New CBIR routes added successfully")
-except Exception as e:
+except ImportError as e:
     print(f"⚠️ Could not add new CBIR routes: {e}")
+
+# Old CBIR route removed - now using new_cbir_route.py
 
 if __name__ == '__main__':
     # Call the font setup function inside the main block

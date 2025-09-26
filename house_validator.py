@@ -91,6 +91,7 @@ class HouseValidator:
                         pass
             
             if not self.gemini_api_key:
+                print("⚠️ Gemini API key not found. Disabling Gemini validation.")
                 logger.warning("Gemini API key not found. Disabling Gemini validation.")
                 self.use_gemini = False
                 return
@@ -98,12 +99,15 @@ class HouseValidator:
             # Configure Gemini
             genai.configure(api_key=self.gemini_api_key)
             self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            print("✅ Gemini API initialized successfully")
             logger.info("Gemini API initialized successfully")
             
         except ImportError:
+            print("⚠️ google-generativeai not installed. Install with: pip install google-generativeai")
             logger.warning("google-generativeai not installed. Install with: pip install google-generativeai")
             self.use_gemini = False
         except Exception as e:
+            print(f"❌ Failed to initialize Gemini API: {e}")
             logger.error(f"Failed to initialize Gemini API: {e}")
             self.use_gemini = False
     
