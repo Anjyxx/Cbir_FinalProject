@@ -34,12 +34,50 @@
         </div>
     </div>
 
+    <!-- Validation Error Message -->
+    {% if validation_error and message %}
+    <div class="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 p-6 mx-4 mt-6 rounded-2xl shadow-lg">
+        <div class="flex items-center mb-4">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-xl font-bold text-red-800">ตรวจสอบรูปภาพ</h3>
+            </div>
+        </div>
+        
+        <div class="bg-white p-5 rounded-xl border border-red-100 shadow-sm">
+            <div class="text-red-700 text-lg font-medium mb-4">
+                {{ message|safe }}
+            </div>
+            
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div class="flex items-center mb-2">
+                    <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h4 class="font-semibold text-blue-800">เคล็ดลับการถ่ายรูปบ้าน</h4>
+                </div>
+                <div class="text-blue-700 text-sm space-y-1">
+                    <div>• ถ่ายรูปบ้านทั้งหลังให้ชัดเจน</div>
+                    <div>• แสงสว่างเพียงพอและโฟกัสชัด</div>
+                    <div>• หลีกเลี่ยงรูปสัตว์ คน รถ หรืออาหาร</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Filter Bar Section -->
     <div class="bg-white shadow-sm border-b border-gray-200">
         <div class="container mx-auto px-4 py-8">
             <!-- Search and Filter Bar -->
             <div class="max-w-6xl mx-auto">
-                <form method="GET" action="{{ url_for('search_by_image') }}" class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+                <form method="GET" action="{{ url_for(current_route or 'search_by_image') }}" class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                  <!-- Preserve query image if it exists -->
                  {% if query_image %}
                  <input type="hidden" name="query_image" value="{{ query_image }}">
@@ -60,10 +98,10 @@
                 </div>
                 
                 <!-- House Type Dropdown -->
-                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('house_type', '') }}', name: 'house_type'})">
+                        <div x-data="dropdown({options: [{id: '', name: 'ค้นหาประเภทบ้าน'}, {% for type in house_types %}{id: '{{ type.id }}', name: '{{ type.name }}'},{% endfor %}], selected: '{{ request.args.get('type', '') }}', name: 'type'})">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">ประเภทบ้าน</label>
                     <div class="relative">
-                        <input type="hidden" name="house_type" :value="selected">
+                        <input type="hidden" name="type" :value="selected">
                                 <button type="button" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between shadow-sm transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis relative" @click="open = !open">
                                     <span x-text="selectedName()" class="truncate text-gray-900 font-medium"></span>
                             <template x-if="selected && selected !== options[0].id">
@@ -156,28 +194,28 @@
                 <div class="flex flex-wrap items-center gap-4">
                     <span class="text-sm font-medium text-gray-700">เรียงตาม:</span>
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='similarity') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort', 'similarity') == 'similarity' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), bedrooms=request.args.get('bedrooms', ''), bathrooms=request.args.get('bathrooms', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='similarity') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort', 'similarity')) == 'similarity' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ความคล้ายกัน
                         </a>
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_low') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'price_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_low') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort')) == 'price_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ราคาต่ำ-สูง
                         </a>
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_high') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'price_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='price_high') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort')) == 'price_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ราคาสูง-ต่ำ
                         </a>
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_low') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'area_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_low') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort')) == 'area_low' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             พื้นที่เล็ก-ใหญ่
                         </a>
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_high') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'area_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='area_high') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort')) == 'area_high' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             พื้นที่ใหญ่-เล็ก
                         </a>
-                        <a href="{{ url_for('search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), house_type=request.args.get('house_type', ''), feature=request.args.get('feature', ''), min_price=request.args.get('min_price', ''), max_price=request.args.get('max_price', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='newest') }}" 
-                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if request.args.get('sort') == 'newest' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
+                        <a href="{{ url_for(current_route or 'search_by_image', query_image=request.args.get('query_image', ''), search=request.args.get('search', ''), project=request.args.get('project', ''), type=request.args.get('type', ''), feature=request.args.get('feature', ''), price_min=request.args.get('price_min', ''), price_max=request.args.get('price_max', ''), min_area=request.args.get('min_area', ''), max_area=request.args.get('max_area', ''), sort='newest') }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ 'bg-blue-600 text-white shadow-md' if (sort_by or request.args.get('sort')) == 'newest' else 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm' }}">
                             ใหม่ล่าสุด
                         </a>
                     </div>
@@ -237,9 +275,13 @@
                     <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     
                     <!-- Similarity Badge (if available) -->
-                {% if house.similarity is defined and house.similarity is not none %}
+                {% if house.similarity is defined and house.similarity is not none and house.similarity > 0 %}
                     <div class="absolute top-4 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                         คล้าย {{ (house.similarity * 100) | round(1) }}%
+                    </div>
+                {% elif house.get('is_mock_entry') %}
+                    <div class="absolute top-4 left-4 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        รูปคล้าย
                     </div>
                     {% endif %}
                     
@@ -346,7 +388,7 @@
     <nav class="flex justify-center my-8">
         <ul class="flex items-center -space-x-px h-10 text-base">
             <li>
-                 <a href="{{ url_for('search_by_image', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}"
+                 <a href="{{ url_for(current_route or 'search_by_image', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}"
                    class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 {{ 'opacity-50 cursor-not-allowed' if not pagination.has_prev }}">
                     <span class="sr-only">Previous</span>
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
@@ -357,7 +399,7 @@
             {% for page_num in pagination.iter_pages() %}
                 {% if page_num %}
                     <li>
-                         <a href="{{ url_for('search_by_image', page=page_num, **request.args) }}"
+                         <a href="{{ url_for(current_route or 'search_by_image', page=page_num, **request.args) }}"
                            class="flex items-center justify-center px-4 h-10 leading-tight {{ 'text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' if page_num == pagination.page else 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700' }}">
                             {{ page_num }}
                         </a>
@@ -369,7 +411,7 @@
                 {% endif %}
             {% endfor %}
             <li>
-                 <a href="{{ url_for('search_by_image', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}"
+                 <a href="{{ url_for(current_route or 'search_by_image', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}"
                    class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 {{ 'opacity-50 cursor-not-allowed' if not pagination.has_next }}">
                     <span class="sr-only">Next</span>
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">

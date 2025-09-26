@@ -60,7 +60,6 @@ from functools import wraps
 from dotenv import load_dotenv
 from cbir_search import search_similar_images
 from cbir_database import search_similar_images_db
-import search_utils
 
 # --- Load Environment Variables and Configure Flask App ---
 
@@ -549,17 +548,27 @@ def admin_dashboard():
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = '/static/img/house_placeholder.jpg'
         latest_houses = serialize_data_for_json(latest_houses)
@@ -593,17 +602,27 @@ def admin_dashboard():
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = '/static/img/house_placeholder.jpg'
         recently_edited_houses = serialize_data_for_json(recently_edited_houses)
@@ -1494,17 +1513,27 @@ def admin_houses():
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = None
 
@@ -1514,9 +1543,12 @@ def admin_houses():
             house['gallery_images'] = []
             for row in gallery_rows:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['gallery_images'].append('/' + url)
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['gallery_images'].append('/static/uploads/houses/' + filename)
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['gallery_images'].append('/static/uploads/' + filename)
 
         return render_template('admin_houses.html', 
                             houses=houses,
@@ -2576,19 +2608,29 @@ def index():
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
-                    house['main_image_url'] = None
+                    house['main_image_url'] = '/static/img/OIP.jpg'
 
             # Attach gallery_images (optional, for mini-gallery)
             cur.execute("SELECT image_url FROM house_images WHERE house_id = %s", (house['id'],))
@@ -2596,9 +2638,12 @@ def index():
             house['gallery_images'] = []
             for row in gallery_rows:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['gallery_images'].append('/' + url)
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['gallery_images'].append('/static/uploads/houses/' + filename)
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['gallery_images'].append('/static/uploads/' + filename)
 
         return render_template(
             'index.html',
@@ -2678,12 +2723,27 @@ def house_detail(house_id):
     house['gallery_images'] = []
     for row in gallery_rows:
         url = row[0].lstrip('/')
-        if not url.startswith('static/uploads/'):
-            url = 'static/uploads/' + url.split('/')[-1]
-        house['gallery_images'].append('/' + url)
+        filename = url.split('/')[-1]
+        # Check if image exists in houses subdirectory
+        if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+            house['gallery_images'].append('/static/uploads/houses/' + filename)
+        elif os.path.exists(os.path.join('static', 'uploads', filename)):
+            house['gallery_images'].append('/static/uploads/' + filename)
 
-    # Set main_image_url
-    if house['gallery_images']:
+    # Set main_image_url - check if there's a CBIR preference
+    cbir_image_url = None
+    if 'cbir_results_new' in session:
+        cbir_results = session.get('cbir_results_new', [])
+        for result in cbir_results:
+            if result.get('id') == house_id and 'main_image_url' in result:
+                cbir_image_url = result['main_image_url']
+                break
+    
+    if cbir_image_url and cbir_image_url in house['gallery_images']:
+        # Use the CBIR-selected image if available
+        house['main_image_url'] = cbir_image_url
+    elif house['gallery_images']:
+        # Fall back to first image in gallery
         house['main_image_url'] = house['gallery_images'][0]
     else:
         house['main_image_url'] = '/static/img/house_placeholder.jpg'
@@ -2707,7 +2767,10 @@ def upload_house_images(house_id):
         if file and allowed_file(file.filename):
             try:
                 filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                # Save house images to houses subfolder
+                houses_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'houses')
+                os.makedirs(houses_folder, exist_ok=True)
+                filepath = os.path.join(houses_folder, filename)
                 file.save(filepath)
             
                 cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -2734,7 +2797,8 @@ def delete_house_image_route(house_id, image_id):
         image_url_result = cur.fetchone()
 
         if image_url_result:
-            file_to_delete = os.path.join(app.config['UPLOAD_FOLDER'], image_url_result[0])
+            # Look for the file in the houses subfolder
+            file_to_delete = os.path.join(app.config['UPLOAD_FOLDER'], 'houses', image_url_result[0])
             if os.path.exists(file_to_delete):
                 os.remove(file_to_delete)
 
@@ -3231,17 +3295,27 @@ def houses_by_type(type_id):
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = None
             cur.execute("SELECT image_url FROM house_images WHERE house_id = %s", (house['id'],))
@@ -3249,9 +3323,12 @@ def houses_by_type(type_id):
             house['gallery_images'] = []
             for row in gallery_rows:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['gallery_images'].append('/' + url)
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['gallery_images'].append('/static/uploads/houses/' + filename)
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['gallery_images'].append('/static/uploads/' + filename)
         
         # Fetch all house types and projects for the dropdowns
         cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
@@ -3321,17 +3398,27 @@ def houses_by_project(project_id):
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = None
             cur.execute("SELECT image_url FROM house_images WHERE house_id = %s", (house['id'],))
@@ -3339,9 +3426,12 @@ def houses_by_project(project_id):
             house['gallery_images'] = []
             for row in gallery_rows:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['gallery_images'].append('/' + url)
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['gallery_images'].append('/static/uploads/houses/' + filename)
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['gallery_images'].append('/static/uploads/' + filename)
         
         # Fetch all house types and projects for the dropdowns
         cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
@@ -3469,17 +3559,27 @@ def houses_by_feature(feature_id):
             row = cur.fetchone()
             if row:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['main_image_url'] = '/' + url
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['main_image_url'] = '/static/uploads/houses/' + filename
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['main_image_url'] = '/static/uploads/' + filename
+                else:
+                    house['main_image_url'] = '/static/img/OIP.jpg'
             else:
                 cur.execute("SELECT image_url FROM house_images WHERE house_id = %s LIMIT 1", (house['id'],))
                 row = cur.fetchone()
                 if row:
                     url = row[0].lstrip('/')
-                    if not url.startswith('static/uploads/'):
-                        url = 'static/uploads/' + url.split('/')[-1]
-                    house['main_image_url'] = '/' + url
+                    filename = url.split('/')[-1]
+                    # Check if image exists in houses subdirectory
+                    if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                        house['main_image_url'] = '/static/uploads/houses/' + filename
+                    elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                        house['main_image_url'] = '/static/uploads/' + filename
+                    else:
+                        house['main_image_url'] = '/static/img/OIP.jpg'
                 else:
                     house['main_image_url'] = '/static/img/OIP.jpg'
             cur.execute("SELECT image_url FROM house_images WHERE house_id = %s", (house['id'],))
@@ -3487,9 +3587,12 @@ def houses_by_feature(feature_id):
             house['gallery_images'] = []
             for row in gallery_rows:
                 url = row[0].lstrip('/')
-                if not url.startswith('static/uploads/'):
-                    url = 'static/uploads/' + url.split('/')[-1]
-                house['gallery_images'].append('/' + url)
+                filename = url.split('/')[-1]
+                # Check if image exists in houses subdirectory
+                if os.path.exists(os.path.join('static', 'uploads', 'houses', filename)):
+                    house['gallery_images'].append('/static/uploads/houses/' + filename)
+                elif os.path.exists(os.path.join('static', 'uploads', filename)):
+                    house['gallery_images'].append('/static/uploads/' + filename)
         # Fetch all house types, projects, and features for the dropdowns
         cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active'")
         house_types = dict_fetchall(cur)
@@ -3992,12 +4095,15 @@ def houses_list():
                 # If the path is already a full URL, use it directly
                 if img_path.startswith(('http://', 'https://')):
                     continue
-                    
-                # Check if the image exists in the uploads directory
+                
+                # Extract just the filename from the path
+                filename = os.path.basename(img_path)
+                
+                # Check if the image exists in the houses subdirectory first
                 possible_paths = [
-                    os.path.join('static', 'uploads', os.path.basename(img_path)),
-                    img_path,
-                    os.path.join('static', 'uploads', img_path),
+                    os.path.join('static', 'uploads', 'houses', filename),  # Main location
+                    os.path.join('static', 'uploads', filename),  # Fallback to uploads root
+                    img_path,  # Original path
                     os.path.join('static', 'img', 'OIP.jpg')  # Fallback to placeholder
                 ]
                 
@@ -4088,7 +4194,8 @@ def search_by_image():
                                  house_types=house_types,
                                  projects=projects,
                                  features=features,
-                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน")
+                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน",
+                                 current_route='search_by_image')
         
         # Get all houses and CBIR results from session
         all_houses = session.get('all_houses', [])
@@ -4098,6 +4205,15 @@ def search_by_image():
         print(f"  all_houses count: {len(all_houses)}")
         print(f"  cbir_house_ids: {cbir_house_ids}")
         print(f"  Session keys: {list(session.keys())}")
+        
+        # Debug: Check if we have any houses with the right status
+        if all_houses:
+            print(f"[DEBUG] Sample house data:")
+            print(f"  First house: {all_houses[0]}")
+            print(f"  House statuses: {[h.get('status') for h in all_houses[:5]]}")
+            print(f"  House types: {[h.get('t_id') for h in all_houses[:5]]}")
+        else:
+            print(f"[DEBUG] No houses in all_houses!")
         if not cbir_house_ids:
             # If no CBIR data in session, show empty results with message
             cur = mysql.connection.cursor()
@@ -4121,7 +4237,8 @@ def search_by_image():
                                  house_types=house_types,
                                  projects=projects,
                                  features=features,
-                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน")
+                                 message="กรุณาทำการค้นหาด้วยรูปภาพก่อน",
+                                 current_route='search_by_image')
         
         # If all_houses is empty but cbir_house_ids exists, fetch all houses from database
         if not all_houses:
@@ -4172,12 +4289,12 @@ def search_by_image():
                 if house.get('main_image_url'):
                     # Ensure the URL starts with /static/uploads/
                     if not house['main_image_url'].startswith('/static/'):
-                        house['main_image_url'] = '/static/uploads/' + house['main_image_url'].split('/')[-1]
+                        house['main_image_url'] = '/static/uploads/houses/' + house['main_image_url'].split('/')[-1]
             
         # Get filter parameters
         search = request.args.get('search', '').strip()
         project_id = request.args.get('project', '').strip()
-        house_type_id = request.args.get('house_type', '').strip()
+        house_type_id = request.args.get('type', '').strip()
         feature_id = request.args.get('feature', '').strip()
         min_price = request.args.get('min_price', '').strip()
         max_price = request.args.get('max_price', '').strip()
@@ -4197,8 +4314,20 @@ def search_by_image():
         print(f"  sort: '{sort}'")
         
         # Start with only CBIR results
-        filtered_houses = [house for house in all_houses if house.get('is_cbir_result', False)]
-        print(f"[DEBUG] Starting with {len(filtered_houses)} CBIR results")
+        if cbir_house_ids:
+            # Filter by CBIR house IDs if available
+            print(f"[DEBUG] Filtering by CBIR house IDs: {cbir_house_ids}")
+            filtered_houses = [house for house in all_houses if house.get('id') in cbir_house_ids]
+            print(f"[DEBUG] Found {len(filtered_houses)} houses matching CBIR IDs")
+            # Mark them as CBIR results
+            for house in filtered_houses:
+                house['is_cbir_result'] = True
+        else:
+            # Fallback to checking is_cbir_result flag
+            print(f"[DEBUG] No CBIR house IDs, using is_cbir_result flag")
+            filtered_houses = [house for house in all_houses if house.get('is_cbir_result', False)]
+            print(f"[DEBUG] Found {len(filtered_houses)} houses with is_cbir_result=True")
+        print(f"[DEBUG] Starting with {len(filtered_houses)} CBIR results (cbir_house_ids: {len(cbir_house_ids)})")
         
         # Debug: Check the structure of the first house
         if filtered_houses:
@@ -4223,9 +4352,16 @@ def search_by_image():
         # Apply house type filter
         if house_type_id:
             before_count = len(filtered_houses)
+            print(f"[DEBUG] Applying house type filter: t_id={house_type_id}")
+            print(f"[DEBUG] Houses before filter: {[h.get('id') for h in filtered_houses[:3]]}")
+            print(f"[DEBUG] House t_ids before filter: {[h.get('t_id') for h in filtered_houses[:3]]}")
             filtered_houses = [house for house in filtered_houses 
                              if str(house.get('t_id', '')) == house_type_id]
             print(f"[DEBUG] After house type filter: {before_count} -> {len(filtered_houses)}")
+            if filtered_houses:
+                print(f"[DEBUG] Remaining houses: {[h.get('id') for h in filtered_houses[:3]]}")
+            else:
+                print(f"[DEBUG] No houses match the house type filter!")
         
         # Apply feature filter
         if feature_id:
@@ -4329,7 +4465,8 @@ def search_by_image():
                              pagination=None,
                              house_types=house_types,
                              projects=projects,
-                             features=features)
+                             features=features,
+                             current_route='search_by_image')
     
     # Handle POST requests (original image upload functionality)
     file = request.files.get('query_img') or request.files.get('file')
@@ -4345,6 +4482,55 @@ def search_by_image():
     os.makedirs(upload_dir, exist_ok=True)  # Ensure upload directory exists
     upload_path = os.path.join(upload_dir, filename)
     file.save(upload_path)
+
+    # Validate that the uploaded image is a house
+    try:
+        from house_validator import validate_house_image
+        is_valid_house, validation_message, validation_info = validate_house_image(upload_path)
+        
+        if not is_valid_house:
+            print(f"[VALIDATION] Image rejected: {validation_message}")
+            print(f"[VALIDATION] Validation info: {validation_info}")
+            
+            # Get dropdown data for the filter bar
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT t_id as id, t_name as name FROM house_type WHERE status = 'active' ORDER BY t_name")
+            house_types = dict_fetchall(cur)
+            
+            cur.execute("SELECT p_id as id, p_name as name FROM project WHERE status = 'active' ORDER BY p_name")
+            projects = dict_fetchall(cur)
+            
+            cur.execute("SELECT f_id as id, f_name as name FROM house_features WHERE status = 'active' ORDER BY f_name")
+            features = dict_fetchall(cur)
+            
+            cur.close()
+            
+            # Clean up the uploaded file since it's not valid
+            try:
+                os.remove(upload_path)
+            except:
+                pass
+            
+            # Format the validation message for better display
+            formatted_message = _format_validation_message(validation_message)
+            
+            return render_template('results.html', 
+                                 houses=[], 
+                                 query_image=None, 
+                                 pagination=None,
+                                 house_types=house_types,
+                                 projects=projects,
+                                 features=features,
+                                 message=formatted_message,
+                                 validation_error=True,
+                                 current_route='search_by_image')
+        
+        print(f"[VALIDATION] Image validated as house: {validation_message}")
+        
+    except Exception as e:
+        print(f"[ERROR] House validation failed: {e}")
+        # If validation fails, we'll still proceed but log the error
+        # This ensures the system doesn't break if validation has issues
 
     # Run CBIR search with search type support using database
     search_type = request.form.get('search_type', 'visual')  # Default to 'visual'
@@ -4362,10 +4548,49 @@ def search_by_image():
     if request.form.get('project'):
         filters['project'] = int(request.form.get('project'))
     
+    # Load valid images from database before CBIR search
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT hi.id, hi.house_id, hi.image_url, h.h_title 
+        FROM house_images hi
+        JOIN house h ON hi.house_id = h.h_id
+        WHERE hi.image_url IS NOT NULL
+    """)
+    db_images = cur.fetchall()
+    
+    # Create a mapping of filenames to their database records
+    valid_images = {}
+    for img_id, house_id, image_url, house_title in db_images:
+        if not image_url:
+            continue
+            
+        # Extract just the filename
+        img_filename = os.path.basename(str(image_url).split('/')[-1])
+        
+        # Check if the file exists on disk
+        possible_paths = [
+            os.path.join('static', 'uploads', img_filename),
+            img_filename,
+            os.path.join('static', 'uploads', os.path.basename(img_filename))
+        ]
+        
+        if not any(os.path.exists(path) for path in possible_paths):
+            print(f"[DEBUG] Image file not found in database: {img_filename}")
+            continue
+            
+        valid_images[img_filename] = {
+            'id': img_id,
+            'house_id': house_id,
+            'image_url': image_url,
+            'house_title': house_title
+        }
+    
+    print(f"[DEBUG] Loaded {len(valid_images)} valid images for CBIR filtering")
+    
     # Use .npy file search for more diverse results (99 images vs 3 houses in database)
     try:
-        print(f"[DEBUG] Starting .npy CBIR search with top_k=12, search_type={search_type}")
-        results = search_similar_images(upload_path, top_k=12, search_type=search_type)
+        print(f"[DEBUG] Starting .npy CBIR search with top_k=20, search_type={search_type}")
+        results = search_similar_images(upload_path, top_k=20, search_type=search_type, valid_images=valid_images)
         print(f"[DEBUG] .npy CBIR search completed with {len(results)} results:")
         for i, result in enumerate(results):
             print(f"[DEBUG]   {i+1}. {result.get('filename', 'NO_FILENAME')} - similarity: {result.get('similarity', 0):.4f}")
@@ -4443,59 +4668,10 @@ def search_by_image():
                              pagination=None,
                              house_types=house_types,
                              projects=projects,
-                             features=features)
+                             features=features,
+                             current_route='search_by_image')
 
-    cur = mysql.connection.cursor()
-    # Get all existing image filenames from the database
-    cur.execute("SELECT id, house_id, image_url FROM house_images WHERE image_url IS NOT NULL")
-    all_images = cur.fetchall()
-    
-    # Create a mapping of basenames to their full paths
-    existing_images = {}
-    for img_id, house_id, image_url in all_images:
-        if not image_url:
-            continue
-        img_filename = os.path.basename(str(image_url).split('/')[-1])  # Get just the filename
-        existing_images[img_filename] = {
-            'house_id': house_id,
-            'image_url': image_url
-        }
-    
-    # Get all valid house images from the database
-    cur.execute("""
-        SELECT hi.id, hi.house_id, hi.image_url, h.h_title 
-        FROM house_images hi
-        JOIN house h ON hi.house_id = h.h_id
-        WHERE hi.image_url IS NOT NULL
-    """)
-    db_images = cur.fetchall()
-    
-    # Create a mapping of filenames to their database records
-    valid_images = {}
-    for img_id, house_id, image_url, house_title in db_images:
-        if not image_url:
-            continue
-            
-        # Extract just the filename
-        img_filename = os.path.basename(str(image_url).split('/')[-1])
-        
-        # Check if the file exists on disk
-        possible_paths = [
-            os.path.join('static', 'uploads', img_filename),
-            img_filename,
-            os.path.join('static', 'uploads', os.path.basename(img_filename))
-        ]
-        
-        if not any(os.path.exists(path) for path in possible_paths):
-            print(f"[DEBUG] Image file not found in database: {img_filename}")
-            continue
-            
-        valid_images[img_filename] = {
-            'id': img_id,
-            'house_id': house_id,
-            'image_url': image_url,
-            'house_title': house_title
-        }
+    # valid_images is already loaded above, no need to reload
     
     # Process CBIR results to create display entries (both with and without house metadata)
     display_results = []  # List of results to display
@@ -4503,12 +4679,39 @@ def search_by_image():
     print(f"[DEBUG] Processing {len(cbir_results)} CBIR results...")
     print(f"[DEBUG] Valid images count: {len(valid_images)}")
     
+    # Ensure we have at least 4 results by adding more if needed
+    if len(cbir_results) < 4:
+        print(f"[DEBUG] Only {len(cbir_results)} results found, adding more from valid_images...")
+        needed = 4 - len(cbir_results)
+        existing_filenames = {r['filename'] for r in cbir_results}
+        
+        # Add more results from valid_images that aren't already in results
+        added_count = 0
+        for filename, meta in valid_images.items():
+            if filename not in existing_filenames and added_count < needed:
+                cbir_results.append({
+                    'filename': filename,
+                    'similarity': 0.0,  # Low similarity for fallback results
+                    'house_id': meta['house_id'],
+                    'title': meta['house_title'],
+                    'price': None,
+                    'bedrooms': None,
+                    'bathrooms': None,
+                    'area': None,
+                    'house_type': None,
+                    'project_name': None,
+                    'image_url': meta['image_url']
+                })
+                added_count += 1
+        
+        print(f"[DEBUG] Added {added_count} fallback results, total: {len(cbir_results)}")
+    
     for i, result in enumerate(cbir_results):
         img_filename = result['filename']
         similarity = result['similarity']
         print(f"[DEBUG] Processing result {i+1}: {img_filename} - similarity: {similarity:.4f}")
         
-        # Try to find a matching image in our valid images
+        # All results should now be valid since we filtered at CBIR level
         if img_filename in valid_images:
             img_data = valid_images[img_filename]
             house_id = img_data['house_id']
@@ -4526,25 +4729,13 @@ def search_by_image():
             })
             print(f"[DEBUG]   -> Added with house metadata")
         else:
-            # Create a mock entry for images without house metadata
-            print(f"[DEBUG]   -> NOT FOUND in valid_images - creating mock entry")
-            
-            # Create a mock image URL
-            mock_image_url = f"uploads/{img_filename}"
-            
-            display_results.append({
-                'filename': img_filename,
-                'similarity': similarity,
-                'image_url': mock_image_url,
-                'house_id': None,
-                'house_title': f"Similar Image {i+1}",
-                'has_house_metadata': False
-            })
-            print(f"[DEBUG]   -> Added as mock entry")
+            # This should not happen now, but log it if it does
+            print(f"[WARNING]   -> Result not found in valid_images (this shouldn't happen): {img_filename}")
+            continue
     
     # Sort by similarity and take top results
     display_results.sort(key=lambda x: x['similarity'], reverse=True)
-    top_results = display_results[:12]  # Show top 12 results
+    top_results = display_results[:20]  # Show top 20 results to ensure we have enough for 4 houses
     
     print(f"[DEBUG] Final display results: {len(top_results)}")
     for i, result in enumerate(top_results):
@@ -4569,7 +4760,8 @@ def search_by_image():
                             houses=[], 
                             query_image=filename, 
                             pagination=None,
-                            message="No matching images found.")
+                            message="No matching images found.",
+                            current_route='search_by_image')
     
     # Create houses list for template - include both real houses and mock entries
     houses = []
@@ -4605,23 +4797,7 @@ def search_by_image():
                     'is_cbir_result': True
                 })
     
-    # Then, add mock entries for images without house metadata
-    for result in top_results:
-        if not result['has_house_metadata']:
-            houses.append({
-                'id': f"mock_{result['filename']}",  # Mock ID
-                'title': result['house_title'],
-                'price': None,
-                'bedrooms': None,
-                'bathrooms': None,
-                'living_area': None,
-                'type_name': "Similar Image",
-                'project_name': None,
-                'main_image_url': result['image_url'],
-                'similarity': result['similarity'],
-                'is_cbir_result': True,
-                'is_mock_entry': True  # Flag for template to handle differently
-            })
+    # Mock entries are no longer needed since we filter at CBIR level
     
     print(f"[DEBUG] Final houses for display: {len(houses)}")
     for i, house in enumerate(houses):
@@ -4650,7 +4826,8 @@ def search_by_image():
                              pagination=None,
                              house_types=house_types,
                              projects=projects,
-                             features=features)
+                             features=features,
+                             current_route='search_by_image')
 
     # Fetch houses for matched house_ids
     format_strings = ','.join(['%s'] * len(matched_house_ids))
@@ -4715,9 +4892,11 @@ def search_by_image():
         house['similarity'] = house_similarity
     cur.close()
 
-    # Sort houses by similarity (descending) and ensure we only return up to 4
+    # Sort houses by similarity (descending) and ensure we return exactly 4
     houses.sort(key=lambda x: x.get('similarity', 0), reverse=True)
-    houses = houses[:4]  # Limit to top 4 most similar houses
+    
+    # Take only the top 4 houses (no mock entries needed)
+    houses = houses[:4]
 
     # Mark CBIR results with a flag
     cbir_house_ids = {house['id'] for house in houses}
@@ -4737,7 +4916,7 @@ def search_by_image():
         FROM house h
         LEFT JOIN house_type t ON h.t_id = t.t_id
         LEFT JOIN project p ON h.p_id = p.p_id
-        WHERE h.status = 'active'
+        WHERE h.status = 'available'
         ORDER BY h.h_id
     '''
     cur.execute(all_houses_query)
@@ -4801,9 +4980,27 @@ def search_by_image():
                          pagination=None,
                          house_types=house_types,
                          projects=projects,
-                         features=features)
+                         features=features,
+                         current_route='search_by_image')
 
-
+def _format_validation_message(message: str) -> str:
+    """Format validation message for better user display."""
+    # Split message into lines and format for HTML display
+    lines = message.split('\n')
+    formatted_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith('❌'):
+            formatted_lines.append(f"<div class='text-red-600 font-semibold mb-2'>{line}</div>")
+        elif line.startswith('💡'):
+            formatted_lines.append(f"<div class='text-blue-600 font-medium mt-3'>{line}</div>")
+        elif line.startswith('•'):
+            formatted_lines.append(f"<div class='text-gray-700 ml-4'>{line}</div>")
+        elif line:
+            formatted_lines.append(f"<div class='text-gray-800'>{line}</div>")
+    
+    return '<br>'.join(formatted_lines)
 
 @app.route('/api/house-types')
 def api_house_types():
@@ -6413,6 +6610,14 @@ if __name__ != "__main__":
         x_host=1,
         x_prefix=1
     )
+
+# Import and add new CBIR routes
+try:
+    from new_cbir_route import add_new_cbir_routes
+    add_new_cbir_routes(app, mysql, dict_fetchall, dict_fetchone, csrf)
+    print("✅ New CBIR routes added successfully")
+except Exception as e:
+    print(f"⚠️ Could not add new CBIR routes: {e}")
 
 if __name__ == '__main__':
     # Call the font setup function inside the main block

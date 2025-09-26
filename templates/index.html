@@ -131,13 +131,7 @@
                     </div>
                 </div>
                 
-                <!-- Search Input -->
-                <div class="flex-1 min-w-[200px]">
-                    <label class="block text-xs text-gray-500 font-semibold mb-1 ml-1">ค้นหาบ้าน</label>
-                    <input type="text" name="search" placeholder="พิมพ์ชื่อบ้าน, โครงการ, หรือคำค้นหา..." 
-                           class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-sm transition-all duration-200"
-                           value="{{ request.args.get('search', '') }}">
-                </div>
+            
                 
                 <script>
                 function dropdown({options, selected, name}) {

@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Admin Reports</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js?v=2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -474,7 +477,13 @@
                             size: 11
                         },
                         precision: 0,
-                        stepSize: 1
+                        stepSize: 1,
+                        callback: function(value) {
+                            return Math.floor(value);
+                        },
+                        min: 0,
+                        max: 20,
+                        count: 21
                     }
                 }
             }
@@ -617,7 +626,13 @@
                                             family: '"Kanit", sans-serif'
                                         },
                                         precision: 0,
-                                        stepSize: 1
+                                        stepSize: 1,
+                                        callback: function(value) {
+                                            return Math.floor(value);
+                                        },
+                                        min: 0,
+                                        max: 20,
+                                        count: 21
                                     }
                                 },
                                 x: {
@@ -772,6 +787,16 @@
             // For pie charts, update colors
             if (chartType === 'pie') {
                 chart.data.datasets[0].backgroundColor = modernColors.slice(0, labels.length);
+            }
+            
+            // For bar charts, update y-axis max value to show increments of 1
+            if (chartType === 'bar' && chart.options.scales && chart.options.scales.y) {
+                const maxValue = Math.max(...data);
+                const maxTick = Math.ceil(maxValue);
+                console.log(`Updating chart ${chartId}: maxValue=${maxValue}, maxTick=${maxTick}`);
+                chart.options.scales.y.ticks.max = maxTick;
+                chart.options.scales.y.ticks.count = maxTick + 1;
+                chart.options.scales.y.ticks.stepSize = 1;
             }
             
             // Update the chart
